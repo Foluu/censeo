@@ -96,7 +96,7 @@ export default async function DashboardPage() {
       icon: Banknote,
       chip: "from-amber-400 to-amber-600 text-amber-950",
       value: (
-        <AnimatedNumber value={data.revenue.thisMonth} format={formatNairaCompact} />
+        <AnimatedNumber value={data.revenue.thisMonth} format="naira-compact" />
       ),
       extra: (
         <DeltaBadge

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 5 http://localhost:3000/login)",
+      "Bash(git log *)",
+      "Read(//c/Users/Owner/ReactProjects/censep app/**)",
+      "Bash(curl -s http://localhost:3000/login)",
+      "Bash(grep -oE '\\\\$ACTION[A-Za-z0-9_:]*')",
+      "Read(//c/Users/Owner/AppData/Local/Temp/claude/c--Users-Owner-ReactProjects-censep-app-censeo/0658b76d-fab8-49f3-8109-7d719543fa99/scratchpad/**)",
+      "Bash(curl -s -D bad_headers.txt -o bad_body.txt -F '$ACTION_REF_1=' -F '$ACTION_1:0={\"id\":\"60e6093079c0fae13f335b35c70ef0fae4aed78a22\",\"bound\":\"$@1\"}' -F '$ACTION_1:1=[{}]' -F '$ACTION_KEY=k4dd2b48cef105c83e742093a7e775267' -F email=admin@censeo.app -F password=WrongPass1! http://localhost:3000/login)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" http://localhost:3000/dashboard)",
+      "Bash(grep -oE '\\(Total revenue|Revenue|Low stock|Stock on hand|Sales\\)[^<]{0,40}' page_dashboard.html)",
+      "Bash(grep -oE '>[A-Z][A-Za-z0-9 .&-]{3,30}</\\(td|h3|span|div\\)' page_products.html)",
+      "Bash(grep -oE '\\(Warehouse|Lagos|Abuja|Main|Store\\)[^<]{0,25}' page_inventory.html)",
+      "Bash(grep -oE '<td[^>]*>[^<]{2,40}</td>' page_sales.html)",
+      "Bash(node -e ' *)",
+      "Bash(netstat -ano)",
+      "Bash(OTHER=\"/c/Users/Owner/ReactProjects/Others/Censeo/censeo\" *)",
+      "Read(//c/Users/Owner/ReactProjects/Others/Censeo/censeo/**)"
+    ]
+  }
+}

@@ -24,7 +24,7 @@ export default function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="text-3xl font-semibold tracking-tight">
-              <span className="text-gradient-amber">Censeo</span>
+              <span className="text-gradient-amber">CountBook</span>
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Inventory intelligence for your business

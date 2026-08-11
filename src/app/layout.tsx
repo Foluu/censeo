@@ -7,8 +7,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Censeo — Inventory Intelligence",
-    template: "%s · Censeo",
+    default: "CountBook — Inventory Intelligence",
+    template: "%s · CountBook",
   },
   description:
     "Modern inventory and sales management for distribution businesses.",

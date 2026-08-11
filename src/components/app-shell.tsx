@@ -133,7 +133,7 @@ function BrandMark() {
         <Boxes className="size-5 text-amber-950" />
       </div>
       <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
-        Censeo
+        CountBook
       </span>
     </div>
   );
@@ -188,7 +188,7 @@ export function AppShell({
 
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-semibold tracking-tight">
-              {current?.label ?? "Censeo"}
+              {current?.label ?? "CountBook"}
             </h1>
           </div>
 

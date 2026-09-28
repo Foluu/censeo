@@ -48,7 +48,36 @@ export default async function TransfersPage() {
                 description="Request a transfer to move stock between warehouses."
               />
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <ul className="divide-y divide-border/60 md:hidden">
+                {transfers.map((transfer) => (
+                  <li key={transfer.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{transfer.product}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(transfer.createdAt, "d MMM yyyy")} · {transfer.requestedBy}
+                        </p>
+                      </div>
+                      <StatusBadge status={transfer.status} />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+                        {transfer.from}
+                        <ArrowRight className="size-3.5 text-muted-foreground" />
+                        {transfer.to}
+                        <span className="ml-1 text-muted-foreground tabular-nums">
+                          × {transfer.quantity}
+                        </span>
+                      </span>
+                      {isAdmin && transfer.status === "PENDING" && (
+                        <TransferRowActions transferId={transfer.id} />
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -101,6 +130,7 @@ export default async function TransfersPage() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>

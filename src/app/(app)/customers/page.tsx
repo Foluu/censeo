@@ -40,14 +40,15 @@ export default async function CustomersPage({
       <FadeIn>
         <Card className="glass">
           <CardContent className="pt-6">
-            <form className="mb-4 max-w-sm">
+            <form className="mb-4 md:max-w-sm">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   name="q"
                   defaultValue={q}
                   placeholder="Search customers…"
-                  className="pl-9"
+                  type="search"
+                  className="h-10 pl-9 md:h-9"
                 />
               </div>
             </form>
@@ -59,7 +60,40 @@ export default async function CustomersPage({
                 description="Customers appear here when you add them or record sales."
               />
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <ul className="divide-y divide-border/60 md:hidden">
+                {customers.map((customer) => (
+                  <li key={customer.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
+                      {customer.name.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{customer.name}</p>
+                      {customer.phone ? (
+                        <a
+                          href={`tel:${customer.phone}`}
+                          className="block truncate text-xs text-primary"
+                        >
+                          {customer.phone}
+                        </a>
+                      ) : (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {customer.email ?? "No contact details"}
+                        </p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold tabular-nums">
+                        {formatNaira(customer.lifetimeValue)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {customer.orders} {customer.orders === 1 ? "order" : "orders"}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -95,6 +129,7 @@ export default async function CustomersPage({
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>

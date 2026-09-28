@@ -137,23 +137,23 @@ export default async function DashboardPage() {
       />
 
       {/* KPI cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {kpis.map((kpi, i) => (
           <FadeIn key={kpi.label} delay={i * 0.06}>
             <Card className="glass relative overflow-hidden">
               <CardContent className="flex items-start justify-between gap-3 pt-6">
                 <div className="min-w-0">
-                  <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
+                  <p className="text-xs text-muted-foreground sm:text-sm">{kpi.label}</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
                     {kpi.value}
                   </p>
-                  <p className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                     {kpi.extra}
                     {kpi.detail}
                   </p>
                 </div>
                 <div
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-md ${kpi.chip}`}
+                  className={`hidden size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-md sm:flex ${kpi.chip}`}
                 >
                   <kpi.icon className="size-5" />
                 </div>
@@ -279,7 +279,28 @@ export default async function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <ul className="divide-y divide-border/60 md:hidden">
+              {data.recentSales.map((sale) => (
+                <li key={sale.id}>
+                  <Link
+                    href={`/sales/${sale.id}`}
+                    className="flex items-center gap-3 py-3 first:pt-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{sale.customer}</p>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-mono">{sale.reference}</span> ·{" "}
+                        {format(sale.date, "d MMM")} · {sale.units} units
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {formatNaira(sale.total)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -297,7 +318,12 @@ export default async function DashboardPage() {
                   {data.recentSales.map((sale) => (
                     <TableRow key={sale.id}>
                       <TableCell className="font-mono text-xs">
-                        {sale.reference}
+                        <Link
+                          href={`/sales/${sale.id}`}
+                          className="hover:text-primary hover:underline"
+                        >
+                          {sale.reference}
+                        </Link>
                       </TableCell>
                       <TableCell>{format(sale.date, "d MMM yyyy")}</TableCell>
                       <TableCell className="max-w-40 truncate">

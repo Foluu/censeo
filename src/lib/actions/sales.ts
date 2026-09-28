@@ -29,7 +29,9 @@ const saleSchema = z.object({
 
 export type SaleInput = z.infer<typeof saleSchema>;
 
-export async function createSale(input: SaleInput): Promise<ActionResult> {
+export async function createSale(
+  input: SaleInput
+): Promise<ActionResult & { saleId?: string }> {
   try {
     const session = await requireSession();
     const data = saleSchema.parse(input);
@@ -38,7 +40,7 @@ export async function createSale(input: SaleInput): Promise<ActionResult> {
       throw new ActionError("Choose a customer or enter a name.");
     }
 
-    await db.$transaction(async (tx) => {
+    const saleId = await db.$transaction(async (tx) => {
       // Verify availability from the ledger before committing anything.
       for (const item of data.items) {
         const agg = await tx.stockMovement.aggregate({
@@ -64,7 +66,7 @@ export async function createSale(input: SaleInput): Promise<ActionResult> {
         0
       );
 
-      await tx.sale.create({
+      const sale = await tx.sale.create({
         data: {
           reference,
           warehouseId: data.warehouseId,
@@ -96,12 +98,14 @@ export async function createSale(input: SaleInput): Promise<ActionResult> {
           createdAt: data.date,
         })),
       });
+
+      return sale.id;
     });
 
     for (const path of ["/sales", "/dashboard", "/inventory", "/reports"]) {
       revalidatePath(path);
     }
-    return { ok: true };
+    return { ok: true, saleId };
   } catch (error) {
     return failure(error);
   }

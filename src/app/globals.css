@@ -166,3 +166,41 @@
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ————— Mobile / PWA ————— */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+/* Height of the mobile bottom tab bar, including the home-indicator inset. */
+@utility pb-bottom-nav {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Hide scrollbars on horizontal chip rails while keeping them scrollable. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ————— Print (receipts) ————— */
+@media print {
+  @page {
+    margin: 10mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+}

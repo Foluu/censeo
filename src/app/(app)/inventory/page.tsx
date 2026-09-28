@@ -40,7 +40,7 @@ export default async function InventoryPage() {
 
       <FadeIn>
         <Tabs defaultValue="levels">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 w-full sm:w-auto">
             <TabsTrigger value="levels">Stock levels</TabsTrigger>
             <TabsTrigger value="receipts">Receipts history</TabsTrigger>
           </TabsList>
@@ -55,7 +55,52 @@ export default async function InventoryPage() {
                     description="Create products first, then receive stock into a warehouse."
                   />
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                  <ul className="divide-y divide-border/60 md:hidden">
+                    {levels.map((level) => (
+                      <li
+                        key={level.productId}
+                        className={`space-y-2 py-3 first:pt-0 last:pb-0 ${!level.isActive ? "opacity-50" : ""}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{level.name}</p>
+                            <p className="font-mono text-xs text-muted-foreground">
+                              {level.sku} · {level.category}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-lg font-semibold leading-none tabular-nums">
+                              {level.total}
+                            </p>
+                            <p
+                              className={`mt-1 text-xs font-medium ${
+                                !level.isActive
+                                  ? "text-muted-foreground"
+                                  : level.low
+                                    ? "text-warning"
+                                    : "text-success"
+                              }`}
+                            >
+                              {!level.isActive ? "Inactive" : level.low ? "Low stock" : "Healthy"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {level.byWarehouse.map((wh) => (
+                            <span
+                              key={wh.warehouseId}
+                              className="rounded-md bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground"
+                            >
+                              <span className="font-medium text-foreground">{wh.code}</span>{" "}
+                              {wh.quantity}
+                            </span>
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="hidden overflow-x-auto md:block">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -112,6 +157,7 @@ export default async function InventoryPage() {
                       </TableBody>
                     </Table>
                   </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -127,7 +173,27 @@ export default async function InventoryPage() {
                     description="Use “Receive stock” to log incoming goods from suppliers."
                   />
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                  <ul className="divide-y divide-border/60 md:hidden">
+                    {receipts.map((receipt) => (
+                      <li key={receipt.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{receipt.product}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {format(receipt.date, "d MMM yyyy")} · {receipt.warehouse} ·{" "}
+                            {receipt.supplier}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-semibold tabular-nums">+{receipt.quantity}</p>
+                          <p className="text-xs tabular-nums text-muted-foreground">
+                            {formatNaira(receipt.quantity * receipt.unitCost)}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="hidden overflow-x-auto md:block">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -174,6 +240,7 @@ export default async function InventoryPage() {
                       </TableBody>
                     </Table>
                   </div>
+                  </>
                 )}
               </CardContent>
             </Card>

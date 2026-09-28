@@ -1,38 +1,32 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Archive, ArchiveRestore, MoreHorizontal, Pencil } from "lucide-react";
+import Link from "next/link";
+import {
+  Archive,
+  ArchiveRestore,
+  Eye,
+  MoreHorizontal,
+  Pencil,
+  Star,
+  StarOff,
+} from "lucide-react";
 import { toast } from "sonner";
-import { toggleProductActive } from "@/lib/actions/products";
+import { toggleProductActive, toggleProductFeatured } from "@/lib/actions/products";
+import type { CategoryGroupData, ProductLevel } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProductDialog, type EditableProduct } from "./product-dialog";
 
-type ProductRow = {
-  productId: string;
-  sku: string;
-  name: string;
-  description: string;
-  category: string;
-  unitPrice: number;
-  costPrice: number;
-  reorderLevel: number;
-  isActive: boolean;
-  isSerialTracked: boolean;
-  requiresExpiry: boolean;
-  isService: boolean;
-};
-
-export function ProductRowActions({ product }: { product: ProductRow }) {
-  const [editOpen, setEditOpen] = useState(false);
-  const [, startTransition] = useTransition();
-
-  const editable: EditableProduct = {
+export function toEditable(product: ProductLevel): EditableProduct {
+  return {
     id: product.productId,
     sku: product.sku,
     name: product.name,
@@ -44,7 +38,26 @@ export function ProductRowActions({ product }: { product: ProductRow }) {
     isSerialTracked: product.isSerialTracked,
     requiresExpiry: product.requiresExpiry,
     isService: product.isService,
+    isFeatured: product.isFeatured,
+    optionIds: product.options.map((o) => o.id),
   };
+}
+
+export function ProductRowActions({
+  product,
+  groups,
+  mainCategories,
+  showDetailsLink = true,
+  className,
+}: {
+  product: ProductLevel;
+  groups: CategoryGroupData[];
+  mainCategories: string[];
+  showDetailsLink?: boolean;
+  className?: string;
+}) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [, startTransition] = useTransition();
 
   function toggleActive() {
     startTransition(async () => {
@@ -57,18 +70,55 @@ export function ProductRowActions({ product }: { product: ProductRow }) {
     });
   }
 
+  function toggleFeatured() {
+    startTransition(async () => {
+      const result = await toggleProductFeatured(product.productId);
+      if (result.ok) {
+        toast.success(
+          product.isFeatured ? "Removed from major products" : "Pinned as a major product"
+        );
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="size-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("size-8", className)}
+            aria-label={`Actions for ${product.name}`}
+          >
             <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {showDetailsLink && (
+            <DropdownMenuItem asChild>
+              <Link href={`/products/${product.productId}`}>
+                <Eye className="size-4" /> View details
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={() => setEditOpen(true)}>
             <Pencil className="size-4" /> Edit
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={toggleFeatured}>
+            {product.isFeatured ? (
+              <>
+                <StarOff className="size-4" /> Unpin major product
+              </>
+            ) : (
+              <>
+                <Star className="size-4" /> Pin as major product
+              </>
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={toggleActive}>
             {product.isActive ? (
               <>
@@ -85,7 +135,9 @@ export function ProductRowActions({ product }: { product: ProductRow }) {
 
       {editOpen && (
         <ProductDialog
-          product={editable}
+          product={toEditable(product)}
+          groups={groups}
+          mainCategories={mainCategories}
           open={editOpen}
           onOpenChange={setEditOpen}
           trigger={null}

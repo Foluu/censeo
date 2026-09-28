@@ -20,6 +20,10 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// PWA assets (service worker, manifest, offline page) must load without a
+// session — browsers fetch them without cookies and a redirect breaks install.
 export const config = {
-  matcher: ["/((?!_next|favicon\\.ico|.*\\.(?:png|jpg|svg|ico|webp)).*)"],
+  matcher: [
+    "/((?!_next|favicon\\.ico|sw\\.js|manifest\\.webmanifest|offline\\.html|.*\\.(?:png|jpg|svg|ico|webp)).*)",
+  ],
 };

@@ -1,0 +1,53 @@
+
+> censeo@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://26.0.48.204:3000
+- Environments: .env
+✓ Ready in 842ms
+
+ GET / 307 in 1173ms (next.js: 210ms, proxy.ts: 365ms, application-code: 597ms)
+ GET /dashboard 200 in 2.7s (next.js: 269ms, proxy.ts: 18ms, application-code: 2.5s)
+ GET /login 200 in 635ms (next.js: 183ms, proxy.ts: 18ms, application-code: 434ms)
+ GET /dashboard 200 in 578ms (next.js: 8ms, proxy.ts: 8ms, application-code: 562ms)
+ POST /login 303 in 894ms (next.js: 9ms, proxy.ts: 10ms, application-code: 874ms)
+  └─ ƒ login({}, {}) in 206ms src/lib/actions/auth.ts
+ GET /login 200 in 130ms (next.js: 8ms, proxy.ts: 12ms, application-code: 109ms)
+ GET /dashboard 200 in 511ms (next.js: 6ms, proxy.ts: 6ms, application-code: 499ms)
+ POST /login 303 in 786ms (next.js: 7ms, proxy.ts: 8ms, application-code: 771ms)
+  └─ ƒ login({}, {}) in 169ms src/lib/actions/auth.ts
+ GET /sales 200 in 894ms (next.js: 121ms, proxy.ts: 12ms, application-code: 761ms)
+ GET /customers 200 in 270ms (next.js: 89ms, proxy.ts: 7ms, application-code: 173ms)
+ GET /products 200 in 268ms (next.js: 86ms, proxy.ts: 7ms, application-code: 176ms)
+ GET /inventory 200 in 479ms (next.js: 99ms, proxy.ts: 10ms, application-code: 371ms)
+ GET /sales 200 in 828ms (next.js: 9ms, proxy.ts: 10ms, application-code: 809ms)
+ POST /sales 200 in 1388ms (next.js: 14ms, proxy.ts: 19ms, application-code: 1355ms)
+  └─ ƒ createSale({"customerId":"cmsoi395p000i7aaw8zuq7o4b","date":"2026-08-14T00:00:00.000Z","items":["[Object]"],"...":"2 items not stringified"}) in 337ms src/lib/actions/sales.ts
+ GET /transfers 200 in 272ms (next.js: 85ms, proxy.ts: 7ms, application-code: 179ms)
+ POST /transfers 200 in 75ms (next.js: 8ms, proxy.ts: 9ms, application-code: 59ms)
+  └─ ƒ completeTransfer("cmsoi3kbn01r97aawg43yrdpq") in 40ms src/lib/actions/transfers.ts
+ GET /reports 200 in 280ms (next.js: 94ms, proxy.ts: 13ms, application-code: 173ms)
+ GET /reports?type=category 200 in 84ms (next.js: 6ms, proxy.ts: 7ms, application-code: 72ms)
+ GET /reports?type=sales-monthly 200 in 134ms (next.js: 6ms, proxy.ts: 6ms, application-code: 122ms)
+ GET /reports?type=inventory-summary 200 in 137ms (next.js: 6ms, proxy.ts: 10ms, application-code: 122ms)
+ GET /settings 200 in 184ms (next.js: 63ms, proxy.ts: 6ms, application-code: 115ms)
+ GET /dashboard 200 in 465ms (next.js: 10ms, proxy.ts: 13ms, application-code: 441ms)
+ GET /sales 200 in 732ms (next.js: 6ms, proxy.ts: 10ms, application-code: 716ms)
+ GET /dashboard 200 in 402ms (next.js: 5ms, proxy.ts: 6ms, application-code: 390ms)
+ GET /products 200 in 166ms (next.js: 7ms, proxy.ts: 8ms, application-code: 151ms)
+ GET /dashboard 200 in 497ms (next.js: 6ms, proxy.ts: 7ms, application-code: 484ms)
+ GET /products 200 in 216ms (next.js: 7ms, proxy.ts: 6ms, application-code: 204ms)
+ GET /products 200 in 28ms (next.js: 7ms, proxy.ts: 10ms, application-code: 12ms)
+ GET /products 200 in 159ms (next.js: 6ms, proxy.ts: 7ms, application-code: 146ms)
+ GET /dashboard 200 in 418ms (next.js: 6ms, proxy.ts: 7ms, application-code: 405ms)
+ GET /sales 200 in 680ms (next.js: 6ms, proxy.ts: 11ms, application-code: 663ms)
+ GET /sales?q=babaria+vitamin+c 200 in 1255ms (next.js: 9ms, proxy.ts: 9ms, application-code: 1237ms)
+ GET /login 200 in 2.4s (next.js: 211ms, proxy.ts: 535ms, application-code: 1608ms)
+ GET /dashboard 200 in 3.4s (next.js: 42ms, proxy.ts: 47ms, application-code: 3.3s)
+ POST /login 303 in 6.0s (next.js: 72ms, proxy.ts: 60ms, application-code: 5.9s)
+  └─ ƒ login({}, {}) in 1434ms src/lib/actions/auth.ts
+ GET /login 200 in 3.6s (next.js: 230ms, proxy.ts: 769ms, application-code: 2.6s)
+ POST /login 303 in 1290ms (next.js: 113ms, proxy.ts: 181ms, application-code: 996ms)
+ GET /dashboard 200 in 6.6s (next.js: 39ms, proxy.ts: 52ms, application-code: 6.5s)

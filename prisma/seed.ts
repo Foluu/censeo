@@ -32,6 +32,10 @@ const randInt = (min: number, max: number) =>
 
 async function main() {
   console.log("Clearing existing data…");
+  await db.productCategory.deleteMany();
+  await db.categoryOption.deleteMany();
+  await db.categoryGroup.deleteMany();
+  await db.businessProfile.deleteMany();
   await db.stockMovement.deleteMany();
   await db.saleItem.deleteMany();
   await db.sale.deleteMany();
@@ -109,6 +113,84 @@ async function main() {
       })
     );
   }
+
+  console.log("Seeding categories…");
+  // Flexible, user-defined grouping on top of the main category.
+  const size = await db.categoryGroup.create({
+    data: {
+      name: "Size",
+      description: "Pack size",
+      multiSelect: false,
+      sortOrder: 0,
+      options: {
+        create: ["50ml", "100ml", "200ml", "500ml"].map((name, i) => ({ name, sortOrder: i })),
+      },
+    },
+    include: { options: true },
+  });
+  const concern = await db.categoryGroup.create({
+    data: {
+      name: "Skin concern",
+      description: "What the product targets",
+      multiSelect: true,
+      appliesTo: ["Skincare"],
+      sortOrder: 1,
+      options: {
+        create: [
+          { name: "Hydration", color: "#38bdf8" },
+          { name: "Brightening", color: "#fbbf24" },
+          { name: "Anti-ageing", color: "#a78bfa" },
+          { name: "Acne", color: "#f87171" },
+        ].map((o, i) => ({ ...o, sortOrder: i })),
+      },
+    },
+    include: { options: true },
+  });
+  const brand = await db.categoryGroup.create({
+    data: {
+      name: "Brand",
+      multiSelect: false,
+      isRequired: true,
+      sortOrder: 2,
+      options: {
+        create: ["Babaria", "Rescofer", "Fecord"].map((name, i) => ({ name, sortOrder: i })),
+      },
+    },
+    include: { options: true },
+  });
+  const opt = (group: { options: { id: string; name: string }[] }, name: string) =>
+    group.options.find((o) => o.name === name)!.id;
+  const tags: Record<string, string[]> = {
+    "RSC-001": [opt(brand, "Rescofer"), opt(size, "200ml")],
+    "BAB-001": [opt(brand, "Babaria"), opt(size, "500ml"), opt(concern, "Hydration")],
+    "BAB-002": [opt(brand, "Babaria"), opt(size, "50ml"), opt(concern, "Brightening"), opt(concern, "Anti-ageing")],
+    "BAB-003": [opt(brand, "Babaria"), opt(size, "100ml"), opt(concern, "Hydration")],
+    "BAB-004": [opt(brand, "Babaria"), opt(size, "100ml"), opt(concern, "Acne"), opt(concern, "Brightening")],
+    "FEC-001": [opt(brand, "Fecord"), opt(size, "200ml")],
+  };
+  for (const product of products) {
+    await db.product.update({
+      where: { id: product.id },
+      data: {
+        // Best sellers are pinned as "major" products in the sidebar.
+        isFeatured: ["RSC-001", "BAB-002", "FEC-001"].includes(product.sku),
+        categories: { create: (tags[product.sku] ?? []).map((optionId) => ({ optionId })) },
+      },
+    });
+  }
+
+  await db.businessProfile.create({
+    data: {
+      id: "default",
+      name: "CountBook Distribution Ltd",
+      tagline: "Wholesale skincare, haircare & pharmaceuticals",
+      address: "14 Ikosi Road, Ketu, Lagos",
+      phone: "+234 801 555 0100",
+      email: "sales@countbook.ng",
+      taxId: "RC 1850432",
+      receiptFooter: "Thank you for your business! Goods sold in good condition are not returnable.",
+    },
+  });
 
   console.log("Seeding customers…");
   const customerNames = [

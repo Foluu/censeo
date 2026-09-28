@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Receipt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createSale } from "@/lib/actions/sales";
 import { createCustomer } from "@/lib/actions/customers";
@@ -35,8 +36,22 @@ type Line = { productId: string; quantity: number; unitPrice: number };
 
 const emptyLine: Line = { productId: "", quantity: 1, unitPrice: 0 };
 
-export function NewSaleDialog({ options }: { options: Options }) {
-  const [open, setOpen] = useState(false);
+export function NewSaleDialog({
+  options,
+  defaultOpen = false,
+}: {
+  options: Options;
+  /** Opened via /sales?new=1 (bottom-nav button, app shortcut). */
+  defaultOpen?: boolean;
+}) {
+  const router = useRouter();
+  const [open, setOpenState] = useState(defaultOpen);
+
+  function setOpen(next: boolean) {
+    setOpenState(next);
+    // Drop ?new=1 so a refresh or back-navigation doesn't reopen the dialog.
+    if (!next && defaultOpen) router.replace("/sales", { scroll: false });
+  }
   const [pending, startTransition] = useTransition();
 
   const [customerMode, setCustomerMode] = useState<"existing" | "new">("existing");
@@ -113,7 +128,20 @@ export function NewSaleDialog({ options }: { options: Options }) {
       });
 
       if (result.ok) {
-        toast.success("Sale recorded — stock updated");
+        const saleId = result.saleId;
+        toast.success("Sale recorded — stock updated", {
+          action: saleId
+            ? {
+                label: (
+                  <span className="inline-flex items-center gap-1">
+                    <Receipt className="size-3.5" /> Receipt
+                  </span>
+                ),
+                onClick: () => router.push(`/sales/${saleId}`),
+              }
+            : undefined,
+          duration: 8000,
+        });
         reset();
         setOpen(false);
       } else {
@@ -228,9 +256,9 @@ export function NewSaleDialog({ options }: { options: Options }) {
             {lines.map((line, index) => (
               <div
                 key={index}
-                className="grid grid-cols-[1fr_80px_110px_36px] items-end gap-2 rounded-xl border border-border/60 bg-background/40 p-3"
+                className="grid grid-cols-[1fr_1fr_36px] items-end gap-2 rounded-xl border border-border/60 bg-background/40 p-3 sm:grid-cols-[1fr_80px_110px_36px]"
               >
-                <div className="space-y-1.5">
+                <div className="col-span-3 space-y-1.5 sm:col-span-1">
                   <Label className="text-xs text-muted-foreground">Product</Label>
                   <Select
                     value={line.productId}

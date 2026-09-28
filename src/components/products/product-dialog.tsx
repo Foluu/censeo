@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Star } from "lucide-react";
 import { toast } from "sonner";
 import {
   createProduct,
   updateProduct,
   type ProductInput,
 } from "@/lib/actions/products";
+import type { CategoryGroupData } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -19,10 +20,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { CategoryPicker, missingRequiredGroup } from "./category-picker";
 
 export type EditableProduct = ProductInput & { id: string };
 
-const blank: ProductInput = {
+type FormState = Required<Pick<ProductInput, "optionIds" | "isFeatured">> & ProductInput;
+
+const blank: FormState = {
   sku: "",
   name: "",
   description: "",
@@ -33,15 +38,21 @@ const blank: ProductInput = {
   isSerialTracked: false,
   requiresExpiry: false,
   isService: false,
+  isFeatured: false,
+  optionIds: [],
 };
 
 export function ProductDialog({
   product,
+  groups,
+  mainCategories,
   trigger,
   open: controlledOpen,
   onOpenChange,
 }: {
   product?: EditableProduct;
+  groups: CategoryGroupData[];
+  mainCategories: string[];
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -50,17 +61,25 @@ export function ProductDialog({
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = onOpenChange ?? setUncontrolledOpen;
   const [pending, startTransition] = useTransition();
-  const [form, setForm] = useState<ProductInput>(product ?? blank);
+  const [form, setForm] = useState<FormState>(
+    product ? { ...blank, ...product } : blank
+  );
+
+  // Local copy so options added inline in the picker are known here too.
+  const [localGroups, setLocalGroups] = useState(groups);
 
   const editing = !!product;
 
-  function set<K extends keyof ProductInput>(key: K, value: ProductInput[K]) {
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function submit() {
     if (form.sku.trim().length < 2) return toast.error("Enter a SKU");
     if (form.name.trim().length < 2) return toast.error("Enter a product name");
+    if (!form.category.trim()) return toast.error("Enter a main category");
+    const missing = missingRequiredGroup(localGroups, form.category, form.optionIds);
+    if (missing) return toast.error(`Choose an option for “${missing}”`);
 
     startTransition(async () => {
       const result = editing
@@ -99,7 +118,7 @@ export function ProductDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="p-sku">SKU</Label>
               <Input
@@ -107,16 +126,23 @@ export function ProductDialog({
                 value={form.sku}
                 onChange={(e) => set("sku", e.target.value)}
                 placeholder="BAB-005"
+                autoCapitalize="characters"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="p-cat">Category</Label>
+              <Label htmlFor="p-cat">Main category</Label>
               <Input
                 id="p-cat"
+                list="p-cat-options"
                 value={form.category}
                 onChange={(e) => set("category", e.target.value)}
                 placeholder="Skincare"
               />
+              <datalist id="p-cat-options">
+                {mainCategories.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -140,12 +166,13 @@ export function ProductDialog({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="p-price">Unit price (₦)</Label>
               <Input
                 id="p-price"
                 type="number"
+                inputMode="decimal"
                 min={0}
                 step="0.01"
                 value={form.unitPrice}
@@ -157,23 +184,55 @@ export function ProductDialog({
               <Input
                 id="p-cost"
                 type="number"
+                inputMode="decimal"
                 min={0}
                 step="0.01"
                 value={form.costPrice}
                 onChange={(e) => set("costPrice", Number(e.target.value))}
               />
             </div>
-            <div className="space-y-2">
+            <div className="col-span-2 space-y-2 sm:col-span-1">
               <Label htmlFor="p-reorder">Reorder level</Label>
               <Input
                 id="p-reorder"
                 type="number"
+                inputMode="numeric"
                 min={0}
                 value={form.reorderLevel}
                 onChange={(e) => set("reorderLevel", Number(e.target.value))}
               />
             </div>
           </div>
+
+          <CategoryPicker
+            groups={localGroups}
+            onOptionAdded={(groupId, option) =>
+              setLocalGroups((prev) =>
+                prev.map((g) =>
+                  g.id === groupId
+                    ? { ...g, options: [...g.options, { ...option, productCount: 0 }] }
+                    : g
+                )
+              )
+            }
+            mainCategory={form.category}
+            value={form.optionIds}
+            onChange={(ids) => set("optionIds", ids)}
+          />
+
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-4">
+            <Star className="size-4 shrink-0 text-primary" />
+            <span className="flex-1">
+              <span className="block text-sm font-medium">Major product</span>
+              <span className="block text-xs text-muted-foreground">
+                Pin to the Products dropdown in the sidebar
+              </span>
+            </span>
+            <Switch
+              checked={form.isFeatured}
+              onCheckedChange={(checked) => set("isFeatured", checked)}
+            />
+          </label>
 
           <div className="space-y-2.5 rounded-xl border border-border/60 bg-background/40 p-4">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -193,7 +252,7 @@ export function ProductDialog({
             ))}
           </div>
 
-          <Button onClick={submit} disabled={pending} className="w-full font-semibold">
+          <Button onClick={submit} disabled={pending} className="h-11 w-full font-semibold sm:h-9">
             {pending ? "Saving…" : editing ? "Save changes" : "Create product"}
           </Button>
         </div>

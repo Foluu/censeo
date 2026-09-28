@@ -36,19 +36,26 @@ Demo logins (seeded):
 ## Modules
 
 - **Dashboard** — monthly revenue (with trend), units sold, stock value, rep/warehouse/product rankings, low-stock alerts, revenue chart
-- **Sales** — multi-line sale entry; transactionally validates and deducts warehouse stock; oversells are rejected
+- **Sales** — multi-line sale entry; transactionally validates and deducts warehouse stock; oversells are rejected. Filter by date range, payment, status and warehouse
+- **Receipts** — printable/shareable customer receipt for every sale (`/sales/[id]`), headed with the business details set in Settings
 - **Inventory** — live stock levels per warehouse + goods-received history
-- **Products** — item master (SKU, pricing, reorder levels, tracking flags), archive/restore
+- **Products** — item master (SKU, pricing, reorder levels, tracking flags), archive/restore; at-a-glance summary, table or catalogue grid, filters, group-by, and a detail page per product. Star products as "major" to pin them under Products in the sidebar
+- **Categories** (`/products/categories`) — user-defined groups (Colour, Storage, Size…) with options and per-group rules: one vs. several options, required, filterable, and which main categories they apply to
 - **Customers** — directory with lifetime value
 - **Transfers** — request → approve/cancel between warehouses, ledger-backed
 - **Reports** — inventory summary, category breakdown, monthly sales (admin only)
 - **Settings** — profile + team overview (admin)
 
+## Mobile & PWA
+
+- Mobile-first layout below the `lg` breakpoint: bottom tab bar with a centre "New sale" button, bottom-sheet dialogs, and card lists in place of tables (desktop layout is unchanged).
+- Installable PWA: `src/app/manifest.ts`, icons in `public/icons/`, and `public/sw.js` (cache-first for hashed build assets, offline fallback page for navigations; authenticated pages are never cached). The service worker registers only in production builds — test install with `npm run build && npm start` (HTTPS or localhost required).
+
 ## Production deployment
 
 1. Create a Postgres database (Neon / Supabase free tier works).
 2. Set `DATABASE_URL` and a fresh `AUTH_SECRET` in your host's env settings.
-3. Apply schema + seed: `npx prisma db push && npm run db:seed` (or run `prisma/migrations/0001_init/migration.sql`).
+3. Apply schema + seed: `npx prisma db push && npm run db:seed` (or run the SQL files in `prisma/migrations/` in order).
 4. Deploy to Vercel (zero config) or any Node host: `npm run build && npm start`.
 
 ## Architecture notes

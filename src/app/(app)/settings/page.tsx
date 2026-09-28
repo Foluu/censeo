@@ -3,6 +3,9 @@ import { format } from "date-fns";
 import { ShieldCheck, User } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
+import { getBusinessProfile } from "@/lib/queries";
+import { InstallAppCard } from "@/components/pwa/install-app-card";
+import { BusinessProfileForm } from "@/components/settings/business-profile-form";
 import { FadeIn } from "@/components/fade-in";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +38,7 @@ export default async function SettingsPage() {
         },
       })
     : [];
+  const business = await getBusinessProfile();
 
   return (
     <div className="space-y-6">
@@ -80,6 +84,14 @@ export default async function SettingsPage() {
             </p>
           </CardContent>
         </Card>
+      </FadeIn>
+
+      <FadeIn delay={0.04}>
+        <BusinessProfileForm profile={business} canEdit={isAdmin} />
+      </FadeIn>
+
+      <FadeIn delay={0.06}>
+        <InstallAppCard />
       </FadeIn>
 
       {isAdmin && (

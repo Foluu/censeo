@@ -1,4 +1,5 @@
-import { startOfMonth, subMonths, format } from "date-fns";
+import { endOfDay, startOfDay, startOfMonth, subMonths, format } from "date-fns";
+import type { PaymentMethod, Prisma, TxStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 
 /** Stock on hand per product/warehouse, derived from the movement ledger. */
@@ -8,7 +9,18 @@ export async function getStockLevels() {
       by: ["productId", "warehouseId"],
       _sum: { quantity: true },
     }),
-    db.product.findMany({ orderBy: { name: "asc" } }),
+    db.product.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        categories: {
+          select: {
+            option: {
+              select: { id: true, name: true, color: true, groupId: true },
+            },
+          },
+        },
+      },
+    }),
     db.warehouse.findMany({ orderBy: { code: "asc" } }),
   ]);
 
@@ -38,6 +50,8 @@ export async function getStockLevels() {
       isSerialTracked: product.isSerialTracked,
       requiresExpiry: product.requiresExpiry,
       isService: product.isService,
+      isFeatured: product.isFeatured,
+      options: product.categories.map((c) => c.option),
       byWarehouse,
       total,
       low: total <= product.reorderLevel,
@@ -215,20 +229,56 @@ export async function getDashboardData() {
   };
 }
 
-export async function getSales(query?: string) {
+export type SalesFilters = {
+  q?: string;
+  from?: string; // yyyy-MM-dd
+  to?: string; // yyyy-MM-dd
+  payment?: string;
+  status?: string;
+  warehouse?: string;
+};
+
+const PAYMENT_METHODS = ["CASH", "CARD", "TRANSFER", "ONLINE"];
+const TX_STATUSES = ["COMPLETED", "PENDING", "CANCELLED"];
+
+function parseDay(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+export async function getSales(filters: SalesFilters = {}) {
+  const { q, payment, status, warehouse } = filters;
+  const from = parseDay(filters.from);
+  const to = parseDay(filters.to);
+
+  const where: Prisma.SaleWhereInput = {};
+  if (q) {
+    where.OR = [
+      { reference: { contains: q, mode: "insensitive" } },
+      { customer: { name: { contains: q, mode: "insensitive" } } },
+      { customerName: { contains: q, mode: "insensitive" } },
+      { items: { some: { product: { name: { contains: q, mode: "insensitive" } } } } },
+    ];
+  }
+  if (from || to) {
+    where.date = {
+      ...(from && { gte: startOfDay(from) }),
+      ...(to && { lte: endOfDay(to) }),
+    };
+  }
+  if (payment && PAYMENT_METHODS.includes(payment)) {
+    where.paymentMethod = payment as PaymentMethod;
+  }
+  if (status && TX_STATUSES.includes(status)) {
+    where.status = status as TxStatus;
+  }
+  if (warehouse) where.warehouseId = warehouse;
+
   const sales = await db.sale.findMany({
-    where: query
-      ? {
-          OR: [
-            { reference: { contains: query, mode: "insensitive" } },
-            { customer: { name: { contains: query, mode: "insensitive" } } },
-            { customerName: { contains: query, mode: "insensitive" } },
-            { items: { some: { product: { name: { contains: query, mode: "insensitive" } } } } },
-          ],
-        }
-      : undefined,
+    where,
     orderBy: { date: "desc" },
-    take: 100,
+    take: 200,
     include: {
       customer: { select: { name: true } },
       warehouse: { select: { code: true } },
@@ -254,6 +304,66 @@ export async function getSales(query?: string) {
     })),
   }));
 }
+
+/** Everything needed to render a customer receipt for one sale. */
+export async function getSaleReceipt(id: string) {
+  const [sale, business] = await Promise.all([
+    db.sale.findUnique({
+      where: { id },
+      include: {
+        customer: { select: { name: true, phone: true, email: true } },
+        warehouse: { select: { code: true, name: true, location: true } },
+        createdBy: { select: { name: true } },
+        items: { include: { product: { select: { name: true, sku: true } } } },
+      },
+    }),
+    getBusinessProfile(),
+  ]);
+  if (!sale) return null;
+
+  return {
+    business,
+    sale: {
+      id: sale.id,
+      reference: sale.reference,
+      date: sale.date,
+      paymentMethod: sale.paymentMethod,
+      status: sale.status,
+      total: Number(sale.total),
+      customer: {
+        name: sale.customer?.name ?? sale.customerName ?? "Walk-in customer",
+        phone: sale.customer?.phone ?? null,
+        email: sale.customer?.email ?? null,
+      },
+      warehouse: sale.warehouse,
+      servedBy: sale.createdBy?.name ?? null,
+      items: sale.items.map((item) => ({
+        id: item.id,
+        name: item.product.name,
+        sku: item.product.sku,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        lineTotal: item.quantity * Number(item.unitPrice),
+      })),
+    },
+  };
+}
+
+export async function getBusinessProfile() {
+  const profile = await db.businessProfile.findUnique({ where: { id: "default" } });
+  return {
+    name: profile?.name ?? "CountBook",
+    tagline: profile?.tagline ?? "",
+    address: profile?.address ?? "",
+    phone: profile?.phone ?? "",
+    email: profile?.email ?? "",
+    website: profile?.website ?? "",
+    taxId: profile?.taxId ?? "",
+    receiptFooter: profile?.receiptFooter ?? "",
+  };
+}
+
+export type BusinessProfileData = Awaited<ReturnType<typeof getBusinessProfile>>;
 
 export async function getReceipts() {
   const receipts = await db.stockReceipt.findMany({
@@ -283,6 +393,102 @@ export async function getReceipts() {
 export async function getProducts() {
   const { levels } = await getStockLevels();
   return levels;
+}
+
+export type ProductLevel = Awaited<ReturnType<typeof getProducts>>[number];
+
+/** Category groups with their options and how many products use each option. */
+export async function getCategoryGroups() {
+  const groups = await db.categoryGroup.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    include: {
+      options: {
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        include: { _count: { select: { products: true } } },
+      },
+    },
+  });
+  return groups.map((group) => ({
+    id: group.id,
+    name: group.name,
+    description: group.description ?? "",
+    multiSelect: group.multiSelect,
+    isRequired: group.isRequired,
+    isFilterable: group.isFilterable,
+    appliesTo: group.appliesTo,
+    sortOrder: group.sortOrder,
+    options: group.options.map((option) => ({
+      id: option.id,
+      name: option.name,
+      color: option.color,
+      productCount: option._count.products,
+    })),
+  }));
+}
+
+export type CategoryGroupData = Awaited<ReturnType<typeof getCategoryGroups>>[number];
+
+/** Distinct main categories in use, for suggestions and filters. */
+export async function getMainCategories() {
+  const rows = await db.product.findMany({
+    distinct: ["category"],
+    select: { category: true },
+    orderBy: { category: "asc" },
+  });
+  return rows.map((r) => r.category);
+}
+
+/** Products flagged as "major", pinned under Products in the sidebar. */
+export async function getMajorProducts() {
+  return db.product.findMany({
+    where: { isFeatured: true, isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, sku: true },
+    take: 12,
+  });
+}
+
+export async function getProductDetail(id: string) {
+  const [{ levels }, recentItems, unitsSold] = await Promise.all([
+    getStockLevels(),
+    db.saleItem.findMany({
+      where: { productId: id },
+      orderBy: { sale: { date: "desc" } },
+      take: 10,
+      include: {
+        sale: {
+          select: {
+            id: true,
+            reference: true,
+            date: true,
+            status: true,
+            customerName: true,
+            customer: { select: { name: true } },
+          },
+        },
+      },
+    }),
+    db.saleItem.aggregate({
+      where: { productId: id, sale: { status: "COMPLETED" } },
+      _sum: { quantity: true },
+    }),
+  ]);
+  const product = levels.find((l) => l.productId === id);
+  if (!product) return null;
+
+  return {
+    product,
+    unitsSold: unitsSold._sum.quantity ?? 0,
+    recentSales: recentItems.map((item) => ({
+      saleId: item.sale.id,
+      reference: item.sale.reference,
+      date: item.sale.date,
+      status: item.sale.status,
+      customer: item.sale.customer?.name ?? item.sale.customerName ?? "Walk-in",
+      quantity: item.quantity,
+      total: item.quantity * Number(item.unitPrice),
+    })),
+  };
 }
 
 export async function getCustomers(query?: string) {

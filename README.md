@@ -43,12 +43,13 @@ Demo logins (seeded):
 - **Categories** (`/products/categories`) — user-defined groups (Colour, Storage, Size…) with options and per-group rules: one vs. several options, required, filterable, and which main categories they apply to
 - **Customers** — directory with lifetime value
 - **Transfers** — request → approve/cancel between warehouses, ledger-backed
-- **Reports** — inventory summary, category breakdown, monthly sales (admin only)
+- **Reports** — inventory summary, category breakdown, monthly sales (admin only); export any report as CSV (raw numbers, Excel-friendly) or PDF via `/api/reports/export?type=…&format=csv|pdf`
+- **Profile** (`/profile`) — every user can change their display name and profile photo / initials colour
 - **Settings** — profile + team overview (admin)
 
 ## Mobile & PWA
 
-- Mobile-first layout below the `lg` breakpoint: bottom tab bar with a centre "New sale" button, bottom-sheet dialogs, and card lists in place of tables (desktop layout is unchanged).
+- Mobile-first layout below the `lg` breakpoint: bottom tab bar (Home, Sales, Inventory, Products — Customers for staff — and Settings), a top-left ⋮ button for the full sidebar, a top-right profile menu (profile, settings, log out), bottom-sheet dialogs, and card lists in place of tables (desktop layout is unchanged).
 - Installable PWA: `src/app/manifest.ts`, icons in `public/icons/`, and `public/sw.js` (cache-first for hashed build assets, offline fallback page for navigations; authenticated pages are never cached). The service worker registers only in production builds — test install with `npm run build && npm start` (HTTPS or localhost required).
 
 ## Production deployment

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -9,24 +9,34 @@ import {
   BarChart3,
   Boxes,
   ChevronDown,
+  EllipsisVertical,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
-  Menu,
   Package,
-  Plus,
   Settings,
   ShoppingCart,
   Star,
   Tags,
+  UserRound,
   Users,
 } from "lucide-react";
 import { logout } from "@/lib/actions/auth";
+import type { UserProfile } from "@/lib/avatar";
 import type { SessionPayload } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserAvatar } from "@/components/user-avatar";
 
 type NavItem = {
   href: string;
@@ -50,15 +60,6 @@ const NAV_ITEMS: NavItem[] = [
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
-}
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 }
 
 /** Collapsible list of major products shown under "Products" in the sidebar. */
@@ -223,21 +224,36 @@ function SidebarNav({
   );
 }
 
-function SidebarFooter({ session }: { session: SessionPayload }) {
+function SidebarFooter({
+  profile,
+  onNavigate,
+}: {
+  profile: UserProfile;
+  onNavigate?: () => void;
+}) {
   return (
     <div className="border-t border-sidebar-border p-3">
       <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-bold text-amber-950">
-          {initials(session.name)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-sidebar-foreground">
-            {session.name}
-          </p>
-          <p className="truncate text-xs text-sidebar-foreground/50 capitalize">
-            {session.role.toLowerCase()}
-          </p>
-        </div>
+        <Link
+          href="/profile"
+          onClick={onNavigate}
+          title="Edit profile"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg transition-opacity hover:opacity-80"
+        >
+          <UserAvatar
+            name={profile.name}
+            avatarUrl={profile.avatarUrl}
+            avatarColor={profile.avatarColor}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-sidebar-foreground">
+              {profile.name}
+            </p>
+            <p className="truncate text-xs text-sidebar-foreground/50 capitalize">
+              {profile.role.toLowerCase()}
+            </p>
+          </div>
+        </Link>
         <form action={logout}>
           <Button
             type="submit"
@@ -267,73 +283,109 @@ function BrandMark() {
   );
 }
 
+/** Avatar button (top right on phones/tablets) with profile + log out. */
+function ProfileMenu({ profile }: { profile: UserProfile }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Account menu"
+          className="rounded-full ring-offset-2 ring-offset-background transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <UserAvatar
+            name={profile.name}
+            avatarUrl={profile.avatarUrl}
+            avatarColor={profile.avatarColor}
+            className="size-8 text-[11px]"
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuLabel className="flex items-center gap-3 py-2 font-normal">
+          <UserAvatar
+            name={profile.name}
+            avatarUrl={profile.avatarUrl}
+            avatarColor={profile.avatarColor}
+            className="size-10 text-sm"
+          />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{profile.name}</p>
+            <p className="truncate text-xs text-muted-foreground">{profile.email}</p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="py-2.5">
+          <Link href="/profile">
+            <UserRound className="size-4" /> My profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="py-2.5">
+          <Link href="/settings">
+            <Settings className="size-4" /> Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          disabled={pending}
+          className="py-2.5"
+          onSelect={() => startTransition(() => logout())}
+        >
+          <LogOut className="size-4" /> {pending ? "Logging out…" : "Log out"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /** Thumb-reachable primary navigation for phones and small tablets. */
-function BottomNav({
-  session,
-  onMore,
-  moreOpen,
-}: {
-  session: SessionPayload;
-  onMore: () => void;
-  moreOpen: boolean;
-}) {
+function BottomNav({ session }: { session: SessionPayload }) {
   const pathname = usePathname();
-  const isAdmin = session.role === "ADMIN";
-  const left = [
+  // Products is admin-only, so staff get Customers in that slot.
+  const tabs: { href: string; label: string; icon: NavItem["icon"] }[] = [
     { href: "/dashboard", label: "Home", icon: LayoutDashboard },
     { href: "/sales", label: "Sales", icon: ShoppingCart },
-  ];
-  const right = [
-    isAdmin
+    { href: "/inventory", label: "Inventory", icon: Boxes },
+    session.role === "ADMIN"
       ? { href: "/products", label: "Products", icon: Package }
-      : { href: "/inventory", label: "Stock", icon: Boxes },
+      : { href: "/customers", label: "Customers", icon: Users },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
-
-  const tab = (item: { href: string; label: string; icon: NavItem["icon"] }) => {
-    const active = isActive(pathname, item.href);
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        className={cn(
-          "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors",
-          active ? "text-primary" : "text-muted-foreground active:text-foreground"
-        )}
-      >
-        <item.icon className={cn("size-5.5", active && "drop-shadow-[0_0_8px_var(--primary)]")} />
-        {item.label}
-      </Link>
-    );
-  };
 
   return (
     <nav
       aria-label="Primary"
       className="glass-strong fixed inset-x-0 bottom-0 z-40 border-x-0 border-b-0 pb-safe lg:hidden print:hidden"
     >
-      <div className="mx-auto flex h-16 max-w-lg items-stretch px-2">
-        {left.map(tab)}
-        <div className="flex flex-1 items-center justify-center">
-          <Link
-            href="/sales?new=1"
-            aria-label="New sale"
-            className="-mt-7 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-amber-950 shadow-lg shadow-amber-500/30 ring-4 ring-background transition-transform active:scale-95"
-          >
-            <Plus className="size-6" strokeWidth={2.5} />
-          </Link>
-        </div>
-        {right.map(tab)}
-        <button
-          type="button"
-          onClick={onMore}
-          className={cn(
-            "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors",
-            moreOpen ? "text-primary" : "text-muted-foreground active:text-foreground"
-          )}
-        >
-          <Menu className="size-5.5" />
-          More
-        </button>
+      <div className="mx-auto flex h-16 max-w-lg items-stretch px-1">
+        {tabs.map((item) => {
+          const active = isActive(pathname, item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors",
+                active ? "text-primary" : "text-muted-foreground active:text-foreground"
+              )}
+            >
+              {active && (
+                <motion.span
+                  layoutId="bottom-nav-active"
+                  className="absolute top-0 h-0.5 w-8 rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+              <item.icon
+                className={cn("size-5.5", active && "drop-shadow-[0_0_8px_var(--primary)]")}
+              />
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
@@ -341,16 +393,20 @@ function BottomNav({
 
 export function AppShell({
   session,
+  profile,
   majorProducts,
   children,
 }: {
   session: SessionPayload;
+  profile: UserProfile;
   majorProducts: MajorProduct[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const current = NAV_ITEMS.find((item) => isActive(pathname, item.href));
+  const title = isActive(pathname, "/profile")
+    ? "Profile"
+    : (NAV_ITEMS.find((item) => isActive(pathname, item.href))?.label ?? "CountBook");
 
   return (
     <div className="flex min-h-screen w-full">
@@ -358,32 +414,33 @@ export function AppShell({
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col bg-sidebar lg:flex print:hidden">
         <BrandMark />
         <SidebarNav session={session} majorProducts={majorProducts} />
-        <SidebarFooter session={session} />
+        <SidebarFooter profile={profile} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60 print:pl-0">
         {/* Topbar */}
         <header className="glass pt-safe sticky top-0 z-30 border-x-0 border-t-0 print:hidden">
-          <div className="flex h-14 items-center gap-3 px-4 lg:h-16 lg:gap-4 lg:px-8">
+          <div className="flex h-14 items-center gap-2 px-2 sm:px-4 lg:h-16 lg:gap-4 lg:px-8">
             <Button
               variant="ghost"
               size="icon"
-              className="hidden md:inline-flex lg:hidden"
+              aria-label="Open menu"
+              className="size-10 lg:hidden"
               onClick={() => setMobileOpen(true)}
             >
-              <Menu className="size-5" />
+              <EllipsisVertical className="size-5" />
             </Button>
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 shadow-md md:hidden">
-              <Boxes className="size-4.5 text-amber-950" />
-            </div>
 
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base font-semibold tracking-tight lg:text-lg">
-                {current?.label ?? "CountBook"}
+                {title}
               </h1>
             </div>
 
             <ThemeToggle />
+            <div className="pr-1 lg:hidden">
+              <ProfileMenu profile={profile} />
+            </div>
           </div>
         </header>
 
@@ -400,7 +457,7 @@ export function AppShell({
                 majorProducts={majorProducts}
                 onNavigate={() => setMobileOpen(false)}
               />
-              <SidebarFooter session={session} />
+              <SidebarFooter profile={profile} onNavigate={() => setMobileOpen(false)} />
             </div>
           </SheetContent>
         </Sheet>
@@ -410,11 +467,7 @@ export function AppShell({
         </main>
       </div>
 
-      <BottomNav
-        session={session}
-        moreOpen={mobileOpen}
-        onMore={() => setMobileOpen(true)}
-      />
+      <BottomNav session={session} />
     </div>
   );
 }

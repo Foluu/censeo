@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { format } from "date-fns";
-import { ShieldCheck, User } from "lucide-react";
+import Link from "next/link";
+import { Pencil, ShieldCheck, User } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
-import { getBusinessProfile } from "@/lib/queries";
+import { getBusinessProfile, getUserProfile } from "@/lib/queries";
+import { UserAvatar } from "@/components/user-avatar";
+import { Button } from "@/components/ui/button";
 import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { BusinessProfileForm } from "@/components/settings/business-profile-form";
 import { FadeIn } from "@/components/fade-in";
@@ -38,7 +41,10 @@ export default async function SettingsPage() {
         },
       })
     : [];
-  const business = await getBusinessProfile();
+  const [business, profile] = await Promise.all([
+    getBusinessProfile(),
+    session ? getUserProfile(session.userId) : null,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -51,12 +57,25 @@ export default async function SettingsPage() {
         <Card className="glass max-w-2xl">
           <CardHeader className="flex flex-row items-center gap-2">
             <User className="size-4 text-primary" />
-            <CardTitle className="text-base">Profile</CardTitle>
+            <CardTitle className="flex-1 text-base">Profile</CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/profile">
+                <Pencil className="size-3.5" /> Edit profile
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <span className="text-sm text-muted-foreground">Name</span>
-              <span className="text-sm font-medium">{session?.name}</span>
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <UserAvatar
+                  name={profile?.name ?? session?.name ?? ""}
+                  avatarUrl={profile?.avatarUrl}
+                  avatarColor={profile?.avatarColor}
+                  className="size-7 text-[10px]"
+                />
+                {profile?.name ?? session?.name}
+              </span>
             </div>
             <Separator />
             <div className="flex items-center justify-between">

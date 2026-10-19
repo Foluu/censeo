@@ -554,3 +554,11 @@ export async function getFormOptions() {
     suppliers,
   };
 }
+
+/** The signed-in user's editable profile (name/avatar live in the DB, not the token). */
+export async function getUserProfile(userId: string) {
+  return db.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true, role: true, avatarUrl: true, avatarColor: true },
+  });
+}

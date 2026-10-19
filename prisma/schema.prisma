@@ -50,6 +50,10 @@ model User {
   passwordHash String
   role         Role     @default(STAFF)
   isActive     Boolean  @default(true)
+  /// Profile photo as a small data: URL (resized client-side to ≤256px).
+  avatarUrl    String?
+  /// Background colour for the initials avatar when there's no photo.
+  avatarColor  String?
   createdAt    DateTime @default(now())
 
   sales     Sale[]

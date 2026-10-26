@@ -1,0 +1,29 @@
+# Render Blueprint — creates the database and the web service together.
+# Render dashboard → New → Blueprint → pick this repo.
+databases:
+  - name: countbook-db
+    databaseName: countbook
+    user: countbook
+    plan: free
+    region: frankfurt # closest Render region to Nigeria
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: countbook
+    runtime: node
+    plan: free
+    region: frankfurt # same region as the database
+    # devDependencies (Tailwind, TypeScript, tsx for the seed) are needed at build/start.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node scripts/render-start.mjs
+    healthCheckPath: /login
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: countbook-db
+          property: connectionString # internal URL, private network
+      - key: AUTH_SECRET
+        generateValue: true # random secret created by Render
+      - key: NODE_VERSION
+        value: "22"

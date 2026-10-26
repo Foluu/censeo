@@ -52,7 +52,17 @@ Demo logins (seeded):
 - Mobile-first layout below the `lg` breakpoint: bottom tab bar (Home, Sales, Inventory, Products — Customers for staff — and Settings), a top-left ⋮ button for the full sidebar, a top-right profile menu (profile, settings, log out), bottom-sheet dialogs, and card lists in place of tables (desktop layout is unchanged).
 - Installable PWA: `src/app/manifest.ts`, icons in `public/icons/`, and `public/sw.js` (cache-first for hashed build assets, offline fallback page for navigations; authenticated pages are never cached). The service worker registers only in production builds — test install with `npm run build && npm start` (HTTPS or localhost required).
 
-## Production deployment
+## Deploying to Render (demo)
+
+`render.yaml` is a Render Blueprint that creates the Postgres database and the web service together (Frankfurt region, free plans).
+
+1. Push this repo to GitHub.
+2. Render dashboard → **New → Blueprint** → pick the repo → **Apply**.
+3. Wait for the first deploy. `scripts/render-start.mjs` syncs the schema on every start and, **only when the database is empty**, loads the demo data in the background (1–3 minutes).
+
+`DATABASE_URL` (internal) and `AUTH_SECRET` (randomly generated) are set by the Blueprint. Free-plan limits: the web service sleeps after ~15 minutes idle (the next visit takes ~1 minute to wake), and free databases expire — check Render's current terms.
+
+## Production deployment (other hosts)
 
 1. Create a Postgres database (Neon / Supabase free tier works).
 2. Set `DATABASE_URL` and a fresh `AUTH_SECRET` in your host's env settings.

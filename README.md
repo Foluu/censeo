@@ -58,9 +58,22 @@ Demo logins (seeded):
 
 1. Push this repo to GitHub.
 2. Render dashboard → **New → Blueprint** → pick the repo → **Apply**.
-3. Wait for the first deploy. `scripts/render-start.mjs` syncs the schema on every start and, **only when the database is empty**, loads the demo data in the background (1–3 minutes).
+3. Wait for the first deploy. `scripts/render-start.mjs` syncs the schema on every start and, when `SEED_DEMO=true` (set by the Blueprint) **and the database is empty**, loads the demo data in the background (1–3 minutes).
 
 `DATABASE_URL` (internal) and `AUTH_SECRET` (randomly generated) are set by the Blueprint. Free-plan limits: the web service sleeps after ~15 minutes idle (the next visit takes ~1 minute to wake), and free databases expire — check Render's current terms.
+
+## New client workspace (empty, no demo data)
+
+Give each client their own Render **Postgres** + **Web Service** (same settings as the demo), with these environment variables:
+
+| Key | Value |
+| --- | --- |
+| `DATABASE_URL` | the new database's **Internal** URL |
+| `AUTH_SECRET` | a new random secret |
+| `NODE_VERSION` | `22` |
+| `SETUP_CODE` | a one-time code you send the client, e.g. `PRIME-7Q4K` |
+
+Do **not** set `SEED_DEMO`. On first start the tables are created and left empty; the first visit opens `/setup`, where the client enters the setup code and creates their admin account, business name and first warehouse. Setup closes as soon as one account exists. The dashboard then shows a "Getting started" checklist. Never run `npm run db:seed` against a client database — it wipes everything.
 
 ## Production deployment (other hosts)
 

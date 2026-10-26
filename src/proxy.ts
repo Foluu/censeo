@@ -7,6 +7,9 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(SESSION_COOKIE);
 
+  // First-run setup creates the first account, so it can't require one.
+  if (pathname === "/setup") return NextResponse.next();
+
   if (pathname === "/login") {
     if (hasSession) {
       return NextResponse.redirect(new URL("/dashboard", request.url));

@@ -624,3 +624,43 @@ export async function getWarehouseSummaries() {
 }
 
 export type WarehouseSummary = Awaited<ReturnType<typeof getWarehouseSummaries>>[number];
+
+/** True while the database has no accounts — the one-time setup is open. */
+export async function needsSetup() {
+  return (await db.user.count()) === 0;
+}
+
+export async function getSupplierSummaries() {
+  const suppliers = await db.supplier.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { receipts: true } } },
+  });
+  return suppliers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    email: s.email ?? "",
+    phone: s.phone ?? "",
+    receipts: s._count.receipts,
+  }));
+}
+
+export type SupplierSummary = Awaited<ReturnType<typeof getSupplierSummaries>>[number];
+
+/** First-run checklist for a new workspace (dashboard "Getting started"). */
+export async function getSetupProgress() {
+  const [profile, products, receipts, users, sales] = await Promise.all([
+    db.businessProfile.findUnique({ where: { id: "default" }, select: { address: true, phone: true } }),
+    db.product.count(),
+    db.stockReceipt.count(),
+    db.user.count(),
+    db.sale.count(),
+  ]);
+  const steps = [
+    { key: "business", label: "Add your address & phone (printed on receipts)", href: "/settings", done: !!(profile?.address || profile?.phone) },
+    { key: "products", label: "Add your products", href: "/products", done: products > 0 },
+    { key: "stock", label: "Receive your opening stock", href: "/inventory", done: receipts > 0 },
+    { key: "team", label: "Add your salesmen", href: "/settings", done: users > 1 },
+    { key: "sale", label: "Record your first sale", href: "/sales?new=1", done: sales > 0 },
+  ];
+  return { steps, complete: steps.every((s) => s.done) };
+}

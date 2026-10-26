@@ -27,3 +27,5 @@ services:
         generateValue: true # random secret created by Render
       - key: NODE_VERSION
         value: "22"
+      - key: SEED_DEMO
+        value: "true" # this Blueprint is the demo; leave unset for client deployments

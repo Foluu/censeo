@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Boxes } from "lucide-react";
+import { needsSetup } from "@/lib/queries";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
+export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // A brand-new (empty) workspace has no accounts yet: go to first-run setup.
+  if (await needsSetup()) redirect("/setup");
+  const isDemo = process.env.SEED_DEMO === "true";
+
   return (
     <main className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden bg-background px-4">
       {/* Ambient background glows */}
@@ -34,10 +41,12 @@ export default function LoginPage() {
 
         <LoginForm />
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Demo access — <span className="font-mono">admin@censeo.app</span> /{" "}
-          <span className="font-mono">Admin123!</span>
-        </p>
+        {isDemo && (
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Demo access — <span className="font-mono">admin@censeo.app</span> /{" "}
+            <span className="font-mono">Admin123!</span>
+          </p>
+        )}
       </div>
     </main>
   );

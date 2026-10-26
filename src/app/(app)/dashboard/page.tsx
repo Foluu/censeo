@@ -11,7 +11,8 @@ import {
   Trophy,
   Warehouse,
 } from "lucide-react";
-import { getDashboardData } from "@/lib/queries";
+import { getDashboardData, getSetupProgress } from "@/lib/queries";
+import { GettingStarted } from "@/components/getting-started";
 import { getSession } from "@/lib/session";
 import { formatNaira, formatNairaCompact, formatNumber } from "@/lib/format";
 import { AnimatedNumber } from "@/components/animated-number";
@@ -88,6 +89,7 @@ function RankList({
 
 export default async function DashboardPage() {
   const [data, session] = await Promise.all([getDashboardData(), getSession()]);
+  const setup = session?.role === "ADMIN" ? await getSetupProgress() : null;
   const firstName = session?.name.split(" ")[0] ?? "there";
 
   const kpis = [
@@ -135,6 +137,12 @@ export default async function DashboardPage() {
         title={`Welcome back, ${firstName}`}
         description={format(new Date(), "EEEE, d MMMM yyyy")}
       />
+
+      {setup && !setup.complete && (
+        <FadeIn>
+          <GettingStarted steps={setup.steps} />
+        </FadeIn>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
@@ -279,6 +287,11 @@ export default async function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
+            {data.recentSales.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No sales yet. Your latest sales will appear here.
+              </p>
+            )}
             <ul className="divide-y divide-border/60 md:hidden">
               {data.recentSales.map((sale) => (
                 <li key={sale.id}>
@@ -300,7 +313,7 @@ export default async function DashboardPage() {
                 </li>
               ))}
             </ul>
-            <div className="hidden overflow-x-auto md:block">
+            <div className={data.recentSales.length ? "hidden overflow-x-auto md:block" : "hidden"}>
               <Table>
                 <TableHeader>
                   <TableRow>

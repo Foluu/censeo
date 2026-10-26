@@ -4,6 +4,7 @@ import { Pencil, User } from "lucide-react";
 import { getSession } from "@/lib/session";
 import {
   getBusinessProfile,
+  getSupplierSummaries,
   getTeam,
   getUserProfile,
   getWarehouseSummaries,
@@ -13,6 +14,7 @@ import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { BusinessProfileForm } from "@/components/settings/business-profile-form";
 import { TeamCard } from "@/components/settings/team-card";
 import { WarehousesCard } from "@/components/settings/warehouses-card";
+import { SuppliersCard } from "@/components/settings/suppliers-card";
 import { FadeIn } from "@/components/fade-in";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +27,12 @@ export const metadata: Metadata = { title: "Settings" };
 export default async function SettingsPage() {
   const session = await getSession();
   const isAdmin = session?.role === "ADMIN";
-  const [business, profile, team, warehouses] = await Promise.all([
+  const [business, profile, team, warehouses, suppliers] = await Promise.all([
     getBusinessProfile(),
     session ? getUserProfile(session.userId) : null,
     isAdmin ? getTeam() : [],
     isAdmin ? getWarehouseSummaries() : [],
+    isAdmin ? getSupplierSummaries() : [],
   ]);
   const name = profile?.name ?? session?.name ?? "";
 
@@ -94,6 +97,12 @@ export default async function SettingsPage() {
           {isAdmin && (
             <FadeIn delay={0.06}>
               <WarehousesCard warehouses={warehouses} />
+            </FadeIn>
+          )}
+
+          {isAdmin && (
+            <FadeIn delay={0.07}>
+              <SuppliersCard suppliers={suppliers} />
             </FadeIn>
           )}
         </div>

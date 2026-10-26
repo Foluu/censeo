@@ -1,6 +1,7 @@
 // Production start for Render:
 //   1. sync the database schema (additive; fails rather than drop data)
-//   2. if the database has no users yet, load the demo data in the background
+//   2. if SEED_DEMO=true and the database has no users, load demo data in the
+//      background; otherwise leave it empty for the client's first-run /setup
 //   3. start Next.js on Render's $PORT
 import { spawn, spawnSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
@@ -21,12 +22,14 @@ const db = new PrismaClient();
 const users = await db.user.count();
 await db.$disconnect();
 
-if (users === 0) {
+if (users === 0 && process.env.SEED_DEMO === "true") {
   // Seeding takes a minute or two; run it alongside the server so Render's
   // health check passes while the demo data loads.
   console.log("[start] Empty database — loading demo data in the background…");
   const seed = spawn(npx, ["tsx", "prisma/seed.ts"], opts);
   seed.on("exit", (code) => console.log(`[start] Demo data ${code === 0 ? "loaded" : `failed (exit ${code})`}.`));
+} else if (users === 0) {
+  console.log("[start] Empty database — open the site to run first-time setup (/setup).");
 } else {
   console.log(`[start] Database has ${users} users — skipping demo data.`);
 }

@@ -559,6 +559,68 @@ export async function getFormOptions() {
 export async function getUserProfile(userId: string) {
   return db.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true, role: true, avatarUrl: true, avatarColor: true },
+    select: { name: true, email: true, role: true, isActive: true, avatarUrl: true, avatarColor: true },
   });
 }
+
+/** Team members with how much history each has (decides delete vs deactivate). */
+export async function getTeam() {
+  const monthStart = startOfMonth(new Date());
+  const [users, monthly] = await Promise.all([
+    db.user.findMany({
+      orderBy: [{ isActive: "desc" }, { role: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        avatarUrl: true,
+        avatarColor: true,
+        createdAt: true,
+        _count: { select: { sales: true, receipts: true, movements: true, transfers: true } },
+      },
+    }),
+    db.sale.groupBy({
+      by: ["createdById"],
+      where: { date: { gte: monthStart }, status: "COMPLETED" },
+      _sum: { total: true },
+    }),
+  ]);
+  const revenue = new Map(monthly.map((m) => [m.createdById, Number(m._sum.total ?? 0)]));
+  return users.map(({ _count, ...user }) => ({
+    ...user,
+    salesCount: _count.sales,
+    revenueThisMonth: revenue.get(user.id) ?? 0,
+    hasHistory: Object.values(_count).some((n) => n > 0),
+  }));
+}
+
+export type TeamMember = Awaited<ReturnType<typeof getTeam>>[number];
+
+/** Warehouses with current stock and whether they can still be deleted. */
+export async function getWarehouseSummaries() {
+  const [warehouses, stock] = await Promise.all([
+    db.warehouse.findMany({
+      orderBy: { code: "asc" },
+      include: {
+        _count: {
+          select: { movements: true, sales: true, receipts: true, transfersFrom: true, transfersTo: true },
+        },
+      },
+    }),
+    db.stockMovement.groupBy({ by: ["warehouseId"], _sum: { quantity: true } }),
+  ]);
+  const units = new Map(stock.map((s) => [s.warehouseId, s._sum.quantity ?? 0]));
+  return warehouses.map(({ _count, ...wh }) => ({
+    id: wh.id,
+    code: wh.code,
+    name: wh.name,
+    location: wh.location ?? "",
+    units: units.get(wh.id) ?? 0,
+    salesCount: _count.sales,
+    hasHistory: Object.values(_count).some((n) => n > 0),
+  }));
+}
+
+export type WarehouseSummary = Awaited<ReturnType<typeof getWarehouseSummaries>>[number];

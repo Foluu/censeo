@@ -19,9 +19,11 @@ export default async function AppLayout({
     // Products (and its major-products dropdown) is admin-only.
     session.role === "ADMIN" ? getMajorProducts() : Promise.resolve([]),
   ]);
-  // Fall back to the token's details rather than redirecting: the proxy would
-  // bounce a cookie-holding request from /login straight back here (a loop).
-  const profile = stored ?? { ...session, avatarUrl: null, avatarColor: null };
+  // Deleted, deactivated, or role changed since sign-in: clear the session and
+  // sign in again. (Not /login directly — the proxy would bounce a
+  // cookie-holding request straight back here.)
+  if (!stored?.isActive || stored.role !== session.role) redirect("/api/auth/signout");
+  const profile = stored;
 
   return (
     <AppShell session={session} profile={profile} majorProducts={majorProducts}>

@@ -52,7 +52,7 @@ export function InstallAppCard() {
   }
 
   return (
-    <Card className="glass max-w-2xl">
+    <Card className="glass">
       <CardHeader className="flex flex-row items-center gap-2">
         <Smartphone className="size-4 text-primary" />
         <CardTitle className="text-base">CountBook app</CardTitle>

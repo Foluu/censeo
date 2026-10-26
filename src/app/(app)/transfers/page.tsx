@@ -40,7 +40,7 @@ export default async function TransfersPage() {
 
       <FadeIn>
         <Card className="glass">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 max-sm:pt-0">
             {transfers.length === 0 ? (
               <EmptyState
                 icon={ArrowLeftRight}

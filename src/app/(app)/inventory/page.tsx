@@ -47,7 +47,7 @@ export default async function InventoryPage() {
 
           <TabsContent value="levels">
             <Card className="glass">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 max-sm:pt-0">
                 {levels.length === 0 ? (
                   <EmptyState
                     icon={Boxes}
@@ -165,7 +165,7 @@ export default async function InventoryPage() {
 
           <TabsContent value="receipts">
             <Card className="glass">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 max-sm:pt-0">
                 {receipts.length === 0 ? (
                   <EmptyState
                     icon={Boxes}

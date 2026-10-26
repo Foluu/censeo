@@ -39,7 +39,7 @@ export default async function CustomersPage({
 
       <FadeIn>
         <Card className="glass">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 max-sm:pt-0">
             <form className="mb-4 md:max-w-sm">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

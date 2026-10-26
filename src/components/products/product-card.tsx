@@ -125,3 +125,59 @@ export function ProductCard({
     </div>
   );
 }
+
+/** Compact phone row: the essentials at about half a catalogue card's height. */
+export function ProductListItem({
+  product,
+  groups,
+  mainCategories,
+  groupNames,
+}: {
+  product: ProductLevel;
+  groups: CategoryGroupData[];
+  mainCategories: string[];
+  groupNames: Map<string, string>;
+}) {
+  const state = stockState(product);
+  const tone = TONES[state.tone];
+  return (
+    <div
+      className={cn(
+        "glass relative flex items-start gap-2 rounded-2xl py-3 pl-4 pr-1.5",
+        !product.isActive && "opacity-55"
+      )}
+    >
+      <div className="min-w-0 flex-1 space-y-1">
+        <Link
+          href={`/products/${product.productId}`}
+          className="line-clamp-2 text-sm font-medium leading-snug after:absolute after:inset-0 after:rounded-2xl"
+        >
+          {product.isFeatured && (
+            <Star className="mr-1 inline size-3.5 -translate-y-px fill-primary text-primary" aria-label="Major product" />
+          )}
+          {product.name}
+        </Link>
+        <p className="truncate text-xs text-muted-foreground">
+          <span className="font-mono">{product.sku}</span> · {product.category}
+          {!product.isActive && " · Archived"}
+        </p>
+        <div className="flex items-center justify-between gap-2 pt-0.5">
+          <p className="font-semibold tabular-nums">{formatNaira(product.unitPrice)}</p>
+          <p className={cn("flex shrink-0 items-center gap-1.5 text-xs font-medium", tone.text)}>
+            <span className={cn("size-1.5 rounded-full", tone.dot)} />
+            {product.isService ? "Service" : `${formatNumber(product.total)} in stock`}
+          </p>
+        </div>
+        <div className="max-h-5 overflow-hidden">
+          <OptionChips options={product.options} groupNames={groupNames} max={3} />
+        </div>
+      </div>
+      <ProductRowActions
+        product={product}
+        groups={groups}
+        mainCategories={mainCategories}
+        className="relative z-10 size-8 shrink-0"
+      />
+    </div>
+  );
+}

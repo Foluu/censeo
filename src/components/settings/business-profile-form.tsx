@@ -56,7 +56,7 @@ export function BusinessProfileForm({
   }
 
   return (
-    <Card className="glass max-w-2xl">
+    <Card className="glass">
       <CardHeader className="flex flex-row items-center gap-2">
         <Building2 className="size-4 text-primary" />
         <CardTitle className="text-base">Business details</CardTitle>

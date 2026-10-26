@@ -48,12 +48,12 @@ export default async function ReportsPage({
         description="Generated live from the ledger — always current, never stale."
       >
         {/* Plain links: the browser handles the file download. */}
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="max-sm:flex-1">
           <a href={exportHref("csv")} download>
             <FileSpreadsheet className="size-4" /> Export CSV
           </a>
         </Button>
-        <Button asChild className="font-semibold">
+        <Button asChild className="font-semibold max-sm:flex-1">
           <a href={exportHref("pdf")} download>
             <FileText className="size-4" /> Export PDF
           </a>
@@ -78,7 +78,56 @@ export default async function ReportsPage({
           ))}
         </div>
 
-        <Card className="glass">
+        <p className="mb-3 text-sm text-muted-foreground md:hidden">{report.subtitle}</p>
+
+        {/* Phones: totals first, then one compact card per row */}
+        <div className="space-y-2.5 md:hidden">
+          {report.footer && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
+              <p className="font-semibold">Totals</p>
+              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {report.footer.map((value, i) =>
+                  i === 0 || value === null ? null : (
+                    <div key={i} className="min-w-0">
+                      <dt className="truncate text-xs text-muted-foreground">{report.columns[i].label}</dt>
+                      <dd className="truncate text-sm font-semibold tabular-nums">
+                        {display(value, report.columns[i])}
+                      </dd>
+                    </div>
+                  )
+                )}
+              </dl>
+            </div>
+          )}
+          {report.rows.map((row, r) => (
+            <div key={r} className="glass rounded-2xl p-4">
+              <p className="font-medium leading-snug">{row[0]}</p>
+              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {row.slice(1).map((value, j) => {
+                  const column = report.columns[j + 1];
+                  return (
+                    <div key={j} className="min-w-0">
+                      <dt className="truncate text-xs text-muted-foreground">{column.label}</dt>
+                      <dd
+                        className={cn(
+                          "truncate text-sm tabular-nums",
+                          column.emphasis && "font-semibold",
+                          column.tone === "success" && "text-success",
+                          column.label === "SKU" && "font-mono text-xs"
+                        )}
+                      >
+                        {display(value, column)}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            </div>
+          ))}
+        </div>
+
+        {/* Tablets & desktop: full table */}
+        <Card className="glass hidden md:flex">
           <CardContent className="overflow-x-auto pt-6">
             <p className="mb-3 text-sm text-muted-foreground">{report.subtitle}</p>
             <Table>

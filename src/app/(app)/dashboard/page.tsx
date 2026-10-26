@@ -141,7 +141,7 @@ export default async function DashboardPage() {
         {kpis.map((kpi, i) => (
           <FadeIn key={kpi.label} delay={i * 0.06}>
             <Card className="glass relative overflow-hidden">
-              <CardContent className="flex items-start justify-between gap-3 pt-6">
+              <CardContent className="flex items-start justify-between gap-3 pt-6 max-sm:pt-0">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground sm:text-sm">{kpi.label}</p>
                   <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">

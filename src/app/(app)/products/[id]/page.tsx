@@ -114,12 +114,12 @@ export default async function ProductDetailPage({
       </div>
 
       <FadeIn>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
           {stats.map((stat) => (
-            <Card key={stat.label} className="glass py-0">
-              <CardContent className="p-4">
+            <Card key={stat.label} className="glass py-0 max-sm:py-0">
+              <CardContent className="p-4 max-sm:px-3 max-sm:py-2.5">
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="mt-0.5 text-lg font-semibold tabular-nums">{stat.value}</p>
+                <p className="mt-0.5 truncate text-lg font-semibold tabular-nums max-sm:text-base">{stat.value}</p>
               </CardContent>
             </Card>
           ))}
@@ -217,15 +217,18 @@ export default async function ProductDetailPage({
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{sale.customer}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="truncate text-xs text-muted-foreground">
                           <span className="font-mono">{sale.reference}</span> ·{" "}
-                          {format(sale.date, "d MMM yyyy")} · {sale.quantity} units
+                          {format(sale.date, "d MMM yy")} · {sale.quantity}{" "}
+                          {sale.quantity === 1 ? "unit" : "units"}
                         </p>
                       </div>
-                      <span className="text-sm font-medium tabular-nums">
-                        {formatNaira(sale.total)}
-                      </span>
-                      <StatusBadge status={sale.status} />
+                      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+                        <span className="text-sm font-medium tabular-nums">
+                          {formatNaira(sale.total)}
+                        </span>
+                        <StatusBadge status={sale.status} />
+                      </div>
                     </Link>
                   </li>
                 ))}

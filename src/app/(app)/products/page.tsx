@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FadeIn } from "@/components/fade-in";
 import { PageHeader } from "@/components/page-header";
 import { FilterBar, type FilterField } from "@/components/filters/filter-bar";
-import { OptionChips, ProductCard, stockState } from "@/components/products/product-card";
+import { OptionChips, ProductCard, ProductListItem, stockState } from "@/components/products/product-card";
 import { ProductDialog } from "@/components/products/product-dialog";
 import { ProductRowActions } from "@/components/products/product-row-actions";
 import { ViewToggle } from "@/components/products/view-toggle";
@@ -369,7 +369,7 @@ export default async function ProductsPage({
       <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {summary.map((item, i) => (
           <FadeIn key={item.label} delay={i * 0.04}>
-            <Card className="glass h-full py-0">
+            <Card className="glass h-full py-0 max-sm:py-0">
               <CardContent className="flex items-start justify-between gap-2 p-4">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground sm:text-sm">{item.label}</p>
@@ -390,8 +390,8 @@ export default async function ProductsPage({
       </div>
 
       <FadeIn delay={0.1}>
-        <Card className="glass max-md:border-0 max-md:bg-transparent max-md:py-0 max-md:shadow-none max-md:backdrop-blur-none">
-          <CardContent className="pt-6 max-md:px-0 max-md:pt-0">
+        <Card className="glass max-md:border-0 max-md:bg-transparent max-md:py-0 max-sm:py-0 max-md:shadow-none max-md:backdrop-blur-none">
+          <CardContent className="pt-6 max-md:px-0 max-sm:px-0 max-md:pt-0">
             <FilterBar fields={fields} searchPlaceholder="Search name, SKU or description…">
               <ViewToggle view={view} />
             </FilterBar>
@@ -431,8 +431,18 @@ export default async function ProductsPage({
                         </span>
                       </h3>
                     )}
-                    {/* Phones: always cards */}
-                    {cards(section.products, "grid gap-3 sm:grid-cols-2 md:hidden")}
+                    {/* Phones: compact rows */}
+                    <div className="grid gap-2 sm:grid-cols-2 md:hidden">
+                      {section.products.map((product) => (
+                        <ProductListItem
+                          key={product.productId}
+                          product={product}
+                          groups={groups}
+                          mainCategories={mainCategories}
+                          groupNames={groupNames}
+                        />
+                      ))}
+                    </div>
                     {/* Tablet/desktop: table (default) or catalogue grid */}
                     {view === "grid"
                       ? cards(

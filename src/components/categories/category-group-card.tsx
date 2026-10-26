@@ -187,7 +187,7 @@ export function CategoryGroupCard({
 
   return (
     <Card className={cn("glass", pending && "opacity-70")}>
-      <CardContent className="space-y-4 pt-6">
+      <CardContent className="space-y-4 pt-6 max-sm:pt-0">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-semibold">{group.name}</h3>
@@ -195,7 +195,7 @@ export function CategoryGroupCard({
               <p className="text-sm text-muted-foreground">{group.description}</p>
             )}
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="whitespace-normal text-left">
                 {group.appliesTo.length === 0
                   ? "Applies to all products"
                   : `Applies to: ${group.appliesTo.join(", ")}`}
@@ -257,11 +257,11 @@ export function CategoryGroupCard({
         </div>
 
         {/* Rules: flip on/off in place */}
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-3 max-sm:gap-0 max-sm:divide-y max-sm:divide-border/60 max-sm:overflow-hidden max-sm:rounded-xl max-sm:border max-sm:border-border/60 max-sm:bg-background/40">
           {rules.map((rule) => (
             <label
               key={rule.key}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-background/40 px-3 py-2.5"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-background/40 px-3 py-2.5 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:py-2"
               title={rule.hint}
             >
               <span className="flex-1">

@@ -102,8 +102,8 @@ export default async function SalesPage({
       </PageHeader>
 
       <FadeIn>
-        <Card className="glass max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:backdrop-blur-none max-md:py-0">
-          <CardContent className="pt-6 max-md:px-0 max-md:pt-0">
+        <Card className="glass max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:backdrop-blur-none max-md:py-0 max-sm:py-0">
+          <CardContent className="pt-6 max-md:px-0 max-sm:px-0 max-md:pt-0">
             <FilterBar
               fields={fields}
               searchPlaceholder="Search reference, customer or product…"

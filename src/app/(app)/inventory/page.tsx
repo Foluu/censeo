@@ -66,7 +66,7 @@ export default async function InventoryPage() {
                           <div className="min-w-0">
                             <p className="truncate font-medium">{level.name}</p>
                             <p className="font-mono text-xs text-muted-foreground">
-                              {level.sku} · {level.category}
+                              {level.sku} · {level.categoryPath}
                             </p>
                           </div>
                           <div className="shrink-0 text-right">
@@ -127,7 +127,7 @@ export default async function InventoryPage() {
                                 {level.sku}
                               </p>
                             </TableCell>
-                            <TableCell>{level.category}</TableCell>
+                            <TableCell>{level.categoryPath}</TableCell>
                             {level.byWarehouse.map((wh) => (
                               <TableCell
                                 key={wh.warehouseId}

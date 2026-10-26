@@ -18,6 +18,9 @@ if (push.status !== 0) {
   process.exit(push.status ?? 1);
 }
 
+// Idempotent data upgrades (e.g. text categories → category tree).
+spawnSync(npx, ["tsx", "scripts/backfill-categories.ts"], opts);
+
 const db = new PrismaClient();
 const users = await db.user.count();
 await db.$disconnect();

@@ -48,6 +48,7 @@ const CHARGING = "Chargers & Cables";
 const AUDIO = "Audio";
 const POWER = "Power Banks";
 const WATCHES = "Smartwatches";
+const ACCESSORIES_CAT = "Accessories";
 
 const COLOURS: Record<string, string> = {
   Black: "#1f2937",
@@ -259,6 +260,8 @@ async function main() {
   await db.stockTransfer.deleteMany();
   await db.stockReceipt.deleteMany();
   await db.product.deleteMany();
+  await db.category.updateMany({ data: { parentId: null } }); // unlink before deleting parents
+  await db.category.deleteMany();
   await db.customer.deleteMany();
   await db.supplier.deleteMany();
   await db.warehouse.deleteMany();
@@ -321,7 +324,42 @@ async function main() {
   const suppliers: Record<string, string> = {};
   for (const { key, ...data } of supplierSpecs) suppliers[key] = (await db.supplier.create({ data })).id;
 
-  console.log("Seeding categories…");
+  console.log("Seeding category tree…");
+  // Phones › <brand>; Accessories › Cases & Protection › Cases / Screen Protection, …
+  const categoryIds = new Map<string, string>(); // "A › B" -> id
+  async function ensureCategory(path: string[], description?: string): Promise<string> {
+    const key = path.join(" › ");
+    const existing = categoryIds.get(key);
+    if (existing) return existing;
+    const parentId = path.length > 1 ? await ensureCategory(path.slice(0, -1)) : null;
+    const siblings = [...categoryIds.keys()].filter((k) => k.split(" › ").length === path.length && k.startsWith(path.slice(0, -1).join(" › "))).length;
+    const created = await db.category.create({
+      data: { name: path[path.length - 1], parentId, description: description ?? null, sortOrder: siblings },
+    });
+    categoryIds.set(key, created.id);
+    return created.id;
+  }
+  await ensureCategory([PHONES], "New, UK-used and Nigerian-used handsets");
+  for (const brand of [...new Set(PHONE_MODELS.map((m) => m.brand))]) await ensureCategory([PHONES, brand]);
+  await ensureCategory([ACCESSORIES_CAT], "Everything that goes with a phone");
+  await ensureCategory([ACCESSORIES_CAT, CASES]);
+  await ensureCategory([ACCESSORIES_CAT, CASES, "Cases"]);
+  await ensureCategory([ACCESSORIES_CAT, CASES, "Screen Protection"]);
+  for (const sub of [CHARGING, AUDIO, POWER]) await ensureCategory([ACCESSORIES_CAT, sub]);
+  await ensureCategory([WATCHES]);
+  const catId = (...path: string[]) => categoryIds.get(path.join(" › "))!;
+  const accessoryPath = (a: Accessory) =>
+    a.category === WATCHES
+      ? [WATCHES]
+      : a.category === CASES
+        ? a.kind === "case"
+          ? [ACCESSORIES_CAT, CASES, "Cases"]
+          : a.kind === "screenguard"
+            ? [ACCESSORIES_CAT, CASES, "Screen Protection"]
+            : [ACCESSORIES_CAT, CASES]
+        : [ACCESSORIES_CAT, a.category];
+
+  console.log("Seeding attributes…");
   const brandNames = ["Apple", "Samsung", "Google", "Tecno", "Infinix", "Xiaomi", "Oraimo", "Anker", "Generic"];
   const compatNames = [
     "iPhone XR", "iPhone 11", "iPhone 12 Pro", "iPhone 13", "iPhone 14 Pro Max",
@@ -329,18 +367,18 @@ async function main() {
   ];
   const groupSpecs = [
     { name: "Brand", description: "Manufacturer", isRequired: true, options: brandNames.map((name) => ({ name })) },
-    { name: "Grade", description: "Condition the item is sold in", isRequired: true, appliesTo: [PHONES, WATCHES],
+    { name: "Grade", description: "Condition the item is sold in", isRequired: true, appliesTo: [catId(PHONES), catId(WATCHES)],
       options: [{ name: "Brand New", color: "#22c55e" }, { name: "UK Used", color: "#3b82f6" }, { name: "Nigerian Used", color: "#f59e0b" }] },
-    { name: "Storage", isRequired: true, appliesTo: [PHONES],
+    { name: "Storage", isRequired: true, appliesTo: [catId(PHONES)],
       options: ["64GB", "128GB", "256GB", "512GB", "1TB"].map((name) => ({ name })) },
     { name: "Colour", options: Object.entries(COLOURS).map(([name, color]) => ({ name, color })) },
-    { name: "Screen size", appliesTo: [PHONES],
+    { name: "Screen size", appliesTo: [catId(PHONES)],
       options: ['6.1"', '6.4"', '6.5"', '6.56"', '6.6"', '6.67"', '6.7"', '6.78"', '6.8"'].map((name) => ({ name })) },
-    { name: "Material", appliesTo: [CASES],
+    { name: "Material", appliesTo: [catId(ACCESSORIES_CAT, CASES)],
       options: ["Silicone", "TPU (Clear)", "Leather", "Rugged", "Tempered Glass", "Privacy Glass", "Ceramic"].map((name) => ({ name })) },
-    { name: "Connector", appliesTo: [CHARGING, POWER],
+    { name: "Connector", appliesTo: [catId(ACCESSORIES_CAT, CHARGING), catId(ACCESSORIES_CAT, POWER)],
       options: ["USB-C", "Lightning", "Micro-USB", "Wireless (MagSafe)"].map((name) => ({ name })) },
-    { name: "Compatible with", description: "Phones this item fits", multiSelect: true, appliesTo: [CASES],
+    { name: "Compatible with", description: "Phones this item fits", multiSelect: true, appliesTo: [catId(ACCESSORIES_CAT, CASES)],
       options: compatNames.map((name) => ({ name })) },
   ];
   const optionIds = new Map<string, string>(); // "Group:Option" -> id
@@ -387,6 +425,7 @@ async function main() {
           name: `${m.brand === "Apple" ? "" : m.brand + " "}${m.model} ${storage} ${colour} (${grade})`,
           description: `${GRADE_NOTE[grade]} ${m.screen} display.`,
           category: PHONES,
+          categoryId: catId(PHONES, m.brand),
           unitPrice: price,
           costPrice: cost,
           reorderLevel: 3,
@@ -418,7 +457,8 @@ async function main() {
         sku: a.sku,
         name: a.name,
         description: a.grade ? GRADE_NOTE[a.grade] : null,
-        category: a.category,
+        category: accessoryPath(a)[0],
+        categoryId: catId(...accessoryPath(a)),
         unitPrice: a.price,
         costPrice: a.cost,
         reorderLevel: a.reorder,

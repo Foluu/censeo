@@ -9,6 +9,7 @@ import {
   type CategoryGroupInput,
 } from "@/lib/actions/categories";
 import type { CategoryGroupData } from "@/lib/queries";
+import type { CategoryNode } from "@/lib/category-tree";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,13 +41,13 @@ const blank: FormState = {
 
 export function CategoryGroupDialog({
   group,
-  mainCategories,
+  categories,
   open: controlledOpen,
   onOpenChange,
   trigger,
 }: {
   group?: CategoryGroupData;
-  mainCategories: string[];
+  categories: CategoryNode[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode | null;
@@ -74,17 +75,17 @@ export function CategoryGroupDialog({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function toggleApplies(category: string) {
+  function toggleApplies(categoryId: string) {
     set(
       "appliesTo",
-      form.appliesTo.includes(category)
-        ? form.appliesTo.filter((c) => c !== category)
-        : [...form.appliesTo, category]
+      form.appliesTo.includes(categoryId)
+        ? form.appliesTo.filter((c) => c !== categoryId)
+        : [...form.appliesTo, categoryId]
     );
   }
 
   function submit() {
-    if (!form.name.trim()) return toast.error("Give the category a name");
+    if (!form.name.trim()) return toast.error("Give the attribute a name");
     const { options, ...rest } = form;
     startTransition(async () => {
       const result = editing
@@ -94,7 +95,7 @@ export function CategoryGroupDialog({
             options: options.split(/[,\n]/),
           });
       if (result.ok) {
-        toast.success(editing ? "Category updated" : "Category created");
+        toast.success(editing ? "Attribute updated" : "Attribute created");
         if (!editing) setForm(blank);
         setOpen(false);
       } else {
@@ -126,16 +127,16 @@ export function CategoryGroupDialog({
         <DialogTrigger asChild>
           {trigger ?? (
             <Button className="font-semibold">
-              <Plus className="size-4" /> New category
+              <Plus className="size-4" /> New attribute
             </Button>
           )}
         </DialogTrigger>
       )}
       <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? `Edit “${group.name}”` : "New category"}</DialogTitle>
+          <DialogTitle>{editing ? `Edit “${group.name}”` : "New attribute"}</DialogTitle>
           <DialogDescription>
-            A category is a way to group products — like Colour, Storage or Size.
+            An attribute describes products — like Colour, Storage, Size or Grade.
           </DialogDescription>
         </DialogHeader>
 
@@ -219,46 +220,61 @@ export function CategoryGroupDialog({
           <div className="space-y-2">
             <Label>Applies to</Label>
             <p className="text-xs text-muted-foreground">
-              Limit this category to certain main categories. Leave all unselected
-              to use it for every product.
+              Limit it to certain categories (each includes its sub-categories), e.g.
+              Storage only for Phones. Leave “All products” to use it everywhere.
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-border/60 p-2">
               <button
                 type="button"
                 onClick={() => set("appliesTo", [])}
+                aria-pressed={form.appliesTo.length === 0}
                 className={cn(
-                  "min-h-8 rounded-full border px-3 text-sm transition-colors",
-                  form.appliesTo.length === 0
-                    ? "border-primary bg-primary/15 font-medium"
-                    : "border-border text-muted-foreground hover:text-foreground"
+                  "flex min-h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-sm transition-colors",
+                  form.appliesTo.length === 0 ? "bg-primary/15 font-medium" : "hover:bg-accent"
                 )}
               >
+                <span className={cn("size-4 shrink-0 rounded border", form.appliesTo.length === 0 ? "border-primary bg-primary" : "border-border")} />
                 All products
               </button>
-              {[...new Set([...mainCategories, ...form.appliesTo])].map((category) => {
-                const on = form.appliesTo.includes(category);
+              {categories.map((category) => {
+                const on = form.appliesTo.includes(category.id);
+                // Already covered because a parent is ticked.
+                const inherited = !on && category.ancestorIds.some((a) => form.appliesTo.includes(a));
                 return (
                   <button
-                    key={category}
+                    key={category.id}
                     type="button"
-                    onClick={() => toggleApplies(category)}
+                    onClick={() => toggleApplies(category.id)}
                     aria-pressed={on}
+                    disabled={inherited}
+                    style={{ paddingLeft: `${0.5 + category.depth * 1.1}rem` }}
                     className={cn(
-                      "min-h-8 rounded-full border px-3 text-sm transition-colors",
-                      on
-                        ? "border-primary bg-primary/15 font-medium"
-                        : "border-border text-muted-foreground hover:text-foreground"
+                      "flex min-h-9 w-full items-center gap-2 rounded-lg pr-2 text-left text-sm transition-colors",
+                      on ? "bg-primary/15 font-medium" : "hover:bg-accent",
+                      inherited && "text-muted-foreground"
                     )}
                   >
-                    {category}
+                    <span
+                      className={cn(
+                        "size-4 shrink-0 rounded border",
+                        on ? "border-primary bg-primary" : inherited ? "border-primary/50 bg-primary/30" : "border-border"
+                      )}
+                    />
+                    <span className="truncate">{category.name}</span>
+                    {inherited && <span className="ml-auto shrink-0 text-xs">included</span>}
                   </button>
                 );
               })}
+              {categories.length === 0 && (
+                <p className="px-2 py-1 text-xs text-muted-foreground">
+                  Create categories first (Categories tab) to limit where this attribute applies.
+                </p>
+              )}
             </div>
           </div>
 
           <Button onClick={submit} disabled={pending} className="h-11 w-full font-semibold sm:h-9">
-            {pending ? "Saving…" : editing ? "Save changes" : "Create category"}
+            {pending ? "Saving…" : editing ? "Save changes" : "Create attribute"}
           </Button>
         </div>
       </DialogContent>

@@ -9,6 +9,8 @@ import {
   type ProductInput,
 } from "@/lib/actions/products";
 import type { CategoryGroupData } from "@/lib/queries";
+import type { CategoryNode } from "@/lib/category-tree";
+import { CategorySelect } from "@/components/categories/category-select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -31,7 +33,7 @@ const blank: FormState = {
   sku: "",
   name: "",
   description: "",
-  category: "General",
+  categoryId: null,
   unitPrice: 0,
   costPrice: 0,
   reorderLevel: 10,
@@ -45,14 +47,14 @@ const blank: FormState = {
 export function ProductDialog({
   product,
   groups,
-  mainCategories,
+  categories,
   trigger,
   open: controlledOpen,
   onOpenChange,
 }: {
   product?: EditableProduct;
   groups: CategoryGroupData[];
-  mainCategories: string[];
+  categories: CategoryNode[];
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -77,8 +79,7 @@ export function ProductDialog({
   function submit() {
     if (form.sku.trim().length < 2) return toast.error("Enter a SKU");
     if (form.name.trim().length < 2) return toast.error("Enter a product name");
-    if (!form.category.trim()) return toast.error("Enter a main category");
-    const missing = missingRequiredGroup(localGroups, form.category, form.optionIds);
+    const missing = missingRequiredGroup(localGroups, categories, form.categoryId ?? null, form.optionIds);
     if (missing) return toast.error(`Choose an option for “${missing}”`);
 
     startTransition(async () => {
@@ -118,32 +119,26 @@ export function ProductDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="p-sku">SKU</Label>
-              <Input
-                id="p-sku"
-                value={form.sku}
-                onChange={(e) => set("sku", e.target.value)}
-                placeholder="BAB-005"
-                autoCapitalize="characters"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="p-cat">Main category</Label>
-              <Input
-                id="p-cat"
-                list="p-cat-options"
-                value={form.category}
-                onChange={(e) => set("category", e.target.value)}
-                placeholder="Skincare"
-              />
-              <datalist id="p-cat-options">
-                {mainCategories.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="p-sku">SKU</Label>
+            <Input
+              id="p-sku"
+              value={form.sku}
+              onChange={(e) => set("sku", e.target.value)}
+              placeholder="BAB-005"
+              autoCapitalize="characters"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="p-cat">Category</Label>
+            <CategorySelect
+              id="p-cat"
+              categories={categories}
+              value={form.categoryId ?? null}
+              onChange={(id) => set("categoryId", id)}
+              allowCreate
+            />
           </div>
 
           <div className="space-y-2">
@@ -215,7 +210,8 @@ export function ProductDialog({
                 )
               )
             }
-            mainCategory={form.category}
+            tree={categories}
+            categoryId={form.categoryId ?? null}
             value={form.optionIds}
             onChange={(ids) => set("optionIds", ids)}
           />

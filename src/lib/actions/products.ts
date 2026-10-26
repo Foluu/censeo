@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { appliesToCategory, buildCategoryTree } from "@/lib/category-tree";
 import {
   ActionError,
   failure,
@@ -15,7 +16,7 @@ const productSchema = z.object({
   sku: z.string().trim().min(2, "SKU is required").max(32),
   name: z.string().trim().min(2, "Name is required").max(120),
   description: z.string().trim().max(500).optional(),
-  category: z.string().trim().min(1, "Category is required").max(60),
+  categoryId: z.string().min(1).nullable().default(null),
   unitPrice: z.number().nonnegative("Price cannot be negative"),
   costPrice: z.number().nonnegative("Cost cannot be negative"),
   reorderLevel: z.number().int().nonnegative(),
@@ -29,17 +30,21 @@ const productSchema = z.object({
 export type ProductInput = z.input<typeof productSchema>;
 
 /**
- * Enforces the rules configured on each category group: options must belong
- * to groups that apply to this product's main category, single-select groups
- * take at most one option, and required groups need at least one.
+ * Resolves the product's category and enforces each attribute's rules:
+ * options must belong to attributes that apply to this category (or a parent
+ * of it), single-select attributes take at most one option, and required
+ * attributes need at least one.
  */
-async function validateOptions(mainCategory: string, optionIds: string[]) {
-  const groups = await db.categoryGroup.findMany({
-    include: { options: { select: { id: true } } },
-  });
-  const applies = (appliesTo: string[]) =>
-    appliesTo.length === 0 ||
-    appliesTo.some((c) => c.toLowerCase() === mainCategory.toLowerCase());
+async function resolveCategoryAndOptions(categoryId: string | null, optionIds: string[]) {
+  const [records, groups] = await Promise.all([
+    db.category.findMany({ select: { id: true, name: true, parentId: true, sortOrder: true } }),
+    db.categoryGroup.findMany({ include: { options: { select: { id: true } } } }),
+  ]);
+  const tree = buildCategoryTree(records);
+  const node = categoryId ? tree.find((n) => n.id === categoryId) : undefined;
+  if (categoryId && !node) throw new ActionError("That category no longer exists.");
+  const topName = node ? (tree.find((n) => n.id === (node.ancestorIds[0] ?? node.id))?.name ?? node.name) : "Uncategorized";
+  const applies = (appliesTo: string[]) => appliesToCategory(appliesTo, tree, categoryId);
 
   const selected = new Set(optionIds);
   const valid: string[] = [];
@@ -54,7 +59,7 @@ async function validateOptions(mainCategory: string, optionIds: string[]) {
     }
     valid.push(...chosen);
   }
-  return valid;
+  return { valid, topName };
 }
 
 function revalidateProducts() {
@@ -68,10 +73,11 @@ export async function createProduct(input: ProductInput): Promise<ActionResult> 
   try {
     await requireSession(true);
     const { optionIds, ...data } = productSchema.parse(input);
-    const valid = await validateOptions(data.category, optionIds);
+    const { valid, topName } = await resolveCategoryAndOptions(data.categoryId, optionIds);
     await db.product.create({
       data: {
         ...data,
+        category: topName,
         categories: { create: valid.map((optionId) => ({ optionId })) },
       },
     });
@@ -95,13 +101,14 @@ export async function updateProduct(
   try {
     await requireSession(true);
     const { optionIds, ...data } = productSchema.parse(input);
-    const valid = await validateOptions(data.category, optionIds);
+    const { valid, topName } = await resolveCategoryAndOptions(data.categoryId, optionIds);
     await db.$transaction([
       db.productCategory.deleteMany({ where: { productId: id } }),
       db.product.update({
         where: { id },
         data: {
           ...data,
+          category: topName,
           categories: { create: valid.map((optionId) => ({ optionId })) },
         },
       }),

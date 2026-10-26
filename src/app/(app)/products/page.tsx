@@ -4,12 +4,13 @@ import { redirect } from "next/navigation";
 import { AlertTriangle, Banknote, Boxes, Package, Star, Tags } from "lucide-react";
 import {
   getCategoryGroups,
-  getMainCategories,
+  getCategoryTree,
   getProducts,
   type CategoryGroupData,
   type ProductLevel,
 } from "@/lib/queries";
 import { getSession } from "@/lib/session";
+import { subtreeIds, type CategoryNode } from "@/lib/category-tree";
 import { formatNaira, formatNairaCompact, formatNumber } from "@/lib/format";
 import { EmptyState } from "@/components/empty-state";
 import { FadeIn } from "@/components/fade-in";
@@ -57,8 +58,12 @@ const SORTS: Record<string, (a: ProductLevel, b: ProductLevel) => number> = {
 function applyFilters(
   products: ProductLevel[],
   params: ProductSearchParams,
-  groups: CategoryGroupData[]
+  groups: CategoryGroupData[],
+  tree: CategoryNode[]
 ) {
+  // A category filter includes everything beneath it; "none" = uncategorised.
+  const inCategory =
+    params.cat && params.cat !== "none" ? new Set(subtreeIds(tree, params.cat)) : null;
   const q = params.q?.trim().toLowerCase();
   const optionIds = [params.opt ?? []].flat();
 
@@ -75,7 +80,8 @@ function applyFilters(
   return products
     .filter((p) => {
       if (q && !`${p.name} ${p.sku} ${p.description}`.toLowerCase().includes(q)) return false;
-      if (params.cat && p.category !== params.cat) return false;
+      if (params.cat === "none" && p.categoryId) return false;
+      if (inCategory && !(p.categoryId && inCategory.has(p.categoryId))) return false;
       if (params.status === "active" && !p.isActive) return false;
       if (params.status === "archived" && p.isActive) return false;
       if (params.featured === "1" && !p.isFeatured) return false;
@@ -102,9 +108,11 @@ function groupProducts(
 ): Section[] {
   if (!groupBy) return [{ key: "all", title: "", products }];
 
-  if (groupBy === "main") {
+  if (groupBy === "main" || groupBy === "category") {
+    // "main" = top-level category; "category" = full path incl. sub-categories.
+    const label = (p: ProductLevel) => (groupBy === "main" ? p.category : p.categoryPath);
     const map = new Map<string, ProductLevel[]>();
-    for (const p of products) map.set(p.category, [...(map.get(p.category) ?? []), p]);
+    for (const p of products) map.set(label(p), [...(map.get(label(p)) ?? []), p]);
     return [...map.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([title, items]) => ({ key: title, title, products: items }));
@@ -134,14 +142,14 @@ export default async function ProductsPage({
   if (session?.role !== "ADMIN") redirect("/dashboard");
 
   const params = await searchParams;
-  const [products, groups, mainCategories] = await Promise.all([
+  const [products, groups, tree] = await Promise.all([
     getProducts(),
     getCategoryGroups(),
-    getMainCategories(),
+    getCategoryTree(),
   ]);
 
   const view = params.view === "grid" ? "grid" : "table";
-  const visible = applyFilters(products, params, groups);
+  const visible = applyFilters(products, params, groups, tree);
   const sections = groupProducts(visible, params.group, groups);
   const groupNames = new Map(groups.map((g) => [g.id, g.name]));
 
@@ -158,7 +166,7 @@ export default async function ProductsPage({
     {
       label: "Units in stock",
       value: formatNumber(stocked.reduce((s, p) => s + Math.max(p.total, 0), 0)),
-      detail: `${mainCategories.length} main categories`,
+      detail: `${tree.filter((c) => c.depth === 0).length} categories · ${tree.filter((c) => c.depth > 0).length} sub`,
       icon: Boxes,
       chip: "from-teal-400 to-teal-600 text-teal-950",
     },
@@ -183,11 +191,16 @@ export default async function ProductsPage({
     {
       type: "select",
       key: "cat",
-      label: "Main category",
+      label: "Category",
       defaultValue: "all",
       options: [
-        { value: "all", label: "All main categories" },
-        ...mainCategories.map((c) => ({ value: c, label: c })),
+        { value: "all", label: "All categories" },
+        // Indented so the tree shape shows in the dropdown; includes sub-categories.
+        ...tree.map((c) => ({
+          value: c.id,
+          label: `${"\u00a0\u00a0\u00a0".repeat(c.depth)}${c.depth ? "└ " : ""}${c.name} (${c.totalProducts})`,
+        })),
+        { value: "none", label: "Uncategorized" },
       ],
     },
     {
@@ -244,7 +257,8 @@ export default async function ProductsPage({
       defaultValue: "none",
       options: [
         { value: "none", label: "No grouping" },
-        { value: "main", label: "Main category" },
+        { value: "main", label: "Top-level category" },
+        { value: "category", label: "Category & sub-category" },
         ...groups.map((g) => ({ value: g.id, label: g.name })),
       ],
     },
@@ -327,7 +341,7 @@ export default async function ProductsPage({
                 <ProductRowActions
                   product={product}
                   groups={groups}
-                  mainCategories={mainCategories}
+                  categories={tree}
                 />
               </TableCell>
             </TableRow>
@@ -344,7 +358,7 @@ export default async function ProductsPage({
           key={product.productId}
           product={product}
           groups={groups}
-          mainCategories={mainCategories}
+          categories={tree}
           groupNames={groupNames}
         />
       ))}
@@ -362,7 +376,7 @@ export default async function ProductsPage({
             <Tags className="size-4" /> Categories
           </Link>
         </Button>
-        <ProductDialog groups={groups} mainCategories={mainCategories} />
+        <ProductDialog groups={groups} categories={tree} />
       </PageHeader>
 
       {/* At-a-glance summary */}
@@ -438,7 +452,7 @@ export default async function ProductsPage({
                           key={product.productId}
                           product={product}
                           groups={groups}
-                          mainCategories={mainCategories}
+                          categories={tree}
                           groupNames={groupNames}
                         />
                       ))}

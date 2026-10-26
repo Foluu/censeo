@@ -17,7 +17,8 @@ const groupSchema = z.object({
   multiSelect: z.boolean().default(false),
   isRequired: z.boolean().default(false),
   isFilterable: z.boolean().default(true),
-  appliesTo: z.array(z.string().trim().min(1).max(60)).max(50).default([]),
+  // Category ids (each also covers its sub-categories). Empty = all products.
+  appliesTo: z.array(z.string().min(1).max(40)).max(100).default([]),
 });
 
 export type CategoryGroupInput = z.input<typeof groupSchema>;

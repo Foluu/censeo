@@ -1,10 +1,11 @@
 import { endOfDay, startOfDay, startOfMonth, subMonths, format } from "date-fns";
 import type { PaymentMethod, Prisma, TxStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { buildCategoryTree, type CategoryNode } from "@/lib/category-tree";
 
 /** Stock on hand per product/warehouse, derived from the movement ledger. */
 export async function getStockLevels() {
-  const [sums, products, warehouses] = await Promise.all([
+  const [sums, products, warehouses, categoryRecords] = await Promise.all([
     db.stockMovement.groupBy({
       by: ["productId", "warehouseId"],
       _sum: { quantity: true },
@@ -22,7 +23,9 @@ export async function getStockLevels() {
       },
     }),
     db.warehouse.findMany({ orderBy: { code: "asc" } }),
+    db.category.findMany({ select: { id: true, name: true, parentId: true, sortOrder: true } }),
   ]);
+  const categoryPaths = new Map(buildCategoryTree(categoryRecords).map((n) => [n.id, n.path]));
 
   const byKey = new Map<string, number>();
   for (const row of sums) {
@@ -42,7 +45,9 @@ export async function getStockLevels() {
       sku: product.sku,
       name: product.name,
       description: product.description ?? "",
-      category: product.category,
+      category: product.category, // top-level category name
+      categoryId: product.categoryId,
+      categoryPath: (product.categoryId && categoryPaths.get(product.categoryId)) || "Uncategorized",
       unitPrice: Number(product.unitPrice),
       costPrice: Number(product.costPrice),
       reorderLevel: product.reorderLevel,
@@ -428,14 +433,18 @@ export async function getCategoryGroups() {
 
 export type CategoryGroupData = Awaited<ReturnType<typeof getCategoryGroups>>[number];
 
-/** Distinct main categories in use, for suggestions and filters. */
-export async function getMainCategories() {
-  const rows = await db.product.findMany({
-    distinct: ["category"],
-    select: { category: true },
-    orderBy: { category: "asc" },
-  });
-  return rows.map((r) => r.category);
+/** The whole category tree in display order, with product counts. */
+export async function getCategoryTree(): Promise<CategoryNode[]> {
+  const [records, counts] = await Promise.all([
+    db.category.findMany({
+      select: { id: true, name: true, parentId: true, sortOrder: true, description: true },
+    }),
+    db.product.groupBy({ by: ["categoryId"], _count: true }),
+  ]);
+  const productCounts = new Map(
+    counts.filter((c) => c.categoryId).map((c) => [c.categoryId as string, c._count])
+  );
+  return buildCategoryTree(records, productCounts);
 }
 
 /** Products flagged as "major", pinned under Products in the sidebar. */

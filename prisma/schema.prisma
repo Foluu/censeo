@@ -67,7 +67,10 @@ model Product {
   sku             String   @unique
   name            String
   description     String?
-  category        String   @default("General")
+  /// Denormalised name of the product's top-level category (kept in sync
+  /// with the category tree) — used for quick grouping and reports.
+  category        String   @default("Uncategorized")
+  categoryId      String?
   unitPrice       Decimal  @db.Decimal(12, 2)
   costPrice       Decimal  @default(0) @db.Decimal(12, 2)
   reorderLevel    Int      @default(10)
@@ -80,14 +83,35 @@ model Product {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  saleItems  SaleItem[]
-  categories ProductCategory[]
-  receipts   StockReceipt[]
-  movements  StockMovement[]
-  transfers  StockTransfer[]
+  saleItems    SaleItem[]
+  categories   ProductCategory[]
+  categoryNode Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  receipts     StockReceipt[]
+  movements    StockMovement[]
+  transfers    StockTransfer[]
+
+  @@index([categoryId])
 }
 
-/// A user-defined way of grouping products, e.g. "Colour", "Storage", "Size".
+/// Product category tree, e.g. Phones › Apple › iPhone. Each product sits in
+/// one category at any level.
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  parentId    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@unique([parentId, name])
+  @@index([parentId])
+}
+
+/// A user-defined attribute for products, e.g. "Colour", "Storage", "Size".
 /// The rule fields control how options in the group can be assigned.
 model CategoryGroup {
   id           String   @id @default(cuid())
@@ -99,7 +123,8 @@ model CategoryGroup {
   isRequired   Boolean  @default(false)
   /// true = offered as a filter on the Products page.
   isFilterable Boolean  @default(true)
-  /// Main product categories this group applies to. Empty = all products.
+  /// Category ids this attribute applies to (including their sub-categories).
+  /// Empty = all products.
   appliesTo    String[] @default([])
   sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())

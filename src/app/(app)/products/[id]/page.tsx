@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ArrowLeft, Star } from "lucide-react";
 import {
   getCategoryGroups,
-  getMainCategories,
+  getCategoryTree,
   getProductDetail,
 } from "@/lib/queries";
 import { getSession } from "@/lib/session";
@@ -38,10 +38,10 @@ export default async function ProductDetailPage({
   if (session?.role !== "ADMIN") redirect("/dashboard");
 
   const { id } = await params;
-  const [detail, groups, mainCategories] = await Promise.all([
+  const [detail, groups, tree] = await Promise.all([
     getProductDetail(id),
     getCategoryGroups(),
-    getMainCategories(),
+    getCategoryTree(),
   ]);
   if (!detail) notFound();
 
@@ -87,7 +87,7 @@ export default async function ProductDetailPage({
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <span className="font-mono text-muted-foreground">{product.sku}</span>
-            <Badge variant="secondary">{product.category}</Badge>
+            <Badge variant="secondary" className="max-w-full whitespace-normal text-left">{product.categoryPath}</Badge>
             <Badge
               className={cn(
                 "border-transparent",
@@ -107,7 +107,7 @@ export default async function ProductDetailPage({
         <ProductRowActions
           product={product}
           groups={groups}
-          mainCategories={mainCategories}
+          categories={tree}
           showDetailsLink={false}
           className="size-10"
         />

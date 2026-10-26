@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
 import type { CategoryGroupData, ProductLevel } from "@/lib/queries";
+import type { CategoryNode } from "@/lib/category-tree";
 import { formatNaira, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -59,12 +60,12 @@ export function OptionChips({
 export function ProductCard({
   product,
   groups,
-  mainCategories,
+  categories,
   groupNames,
 }: {
   product: ProductLevel;
   groups: CategoryGroupData[];
-  mainCategories: string[];
+  categories: CategoryNode[];
   groupNames: Map<string, string>;
 }) {
   const state = stockState(product);
@@ -76,7 +77,7 @@ export function ProductCard({
   return (
     <div
       className={cn(
-        "glass group relative flex flex-col gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg",
+        "glass group relative flex min-w-0 flex-col gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg",
         !product.isActive && "opacity-55"
       )}
     >
@@ -96,13 +97,13 @@ export function ProductCard({
         <ProductRowActions
           product={product}
           groups={groups}
-          mainCategories={mainCategories}
+          categories={categories}
           className="relative z-10 -mr-2 -mt-1"
         />
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <Badge variant="secondary">{product.category}</Badge>
+        <Badge variant="secondary" className="max-w-full truncate" title={product.categoryPath}>{product.categoryPath}</Badge>
         {!product.isActive && <Badge variant="outline">Archived</Badge>}
       </div>
 
@@ -130,12 +131,12 @@ export function ProductCard({
 export function ProductListItem({
   product,
   groups,
-  mainCategories,
+  categories,
   groupNames,
 }: {
   product: ProductLevel;
   groups: CategoryGroupData[];
-  mainCategories: string[];
+  categories: CategoryNode[];
   groupNames: Map<string, string>;
 }) {
   const state = stockState(product);
@@ -143,7 +144,8 @@ export function ProductListItem({
   return (
     <div
       className={cn(
-        "glass relative flex items-start gap-2 rounded-2xl py-3 pl-4 pr-1.5",
+        // min-w-0: grid child — long category paths must truncate, not widen the row.
+        "glass relative flex min-w-0 items-start gap-2 rounded-2xl py-3 pl-4 pr-1.5",
         !product.isActive && "opacity-55"
       )}
     >
@@ -158,7 +160,7 @@ export function ProductListItem({
           {product.name}
         </Link>
         <p className="truncate text-xs text-muted-foreground">
-          <span className="font-mono">{product.sku}</span> · {product.category}
+          <span className="font-mono">{product.sku}</span> · {product.categoryPath}
           {!product.isActive && " · Archived"}
         </p>
         <div className="flex items-center justify-between gap-2 pt-0.5">
@@ -175,7 +177,7 @@ export function ProductListItem({
       <ProductRowActions
         product={product}
         groups={groups}
-        mainCategories={mainCategories}
+        categories={categories}
         className="relative z-10 size-8 shrink-0"
       />
     </div>

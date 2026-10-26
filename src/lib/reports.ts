@@ -84,12 +84,12 @@ async function categoryBreakdown(): Promise<ReportTable> {
   const { levels } = await getStockLevels();
   const categories = new Map<string, { products: number; units: number; cost: number; retail: number }>();
   for (const level of levels) {
-    const entry = categories.get(level.category) ?? { products: 0, units: 0, cost: 0, retail: 0 };
+    const entry = categories.get(level.categoryPath) ?? { products: 0, units: 0, cost: 0, retail: 0 };
     entry.products += 1;
     entry.units += level.total;
     entry.cost += level.total * level.costPrice;
     entry.retail += level.total * level.unitPrice;
-    categories.set(level.category, entry);
+    categories.set(level.categoryPath, entry);
   }
   const entries = [...categories.entries()].sort(([a], [b]) => a.localeCompare(b));
   const sum = (key: "products" | "units" | "cost" | "retail") =>
@@ -98,7 +98,7 @@ async function categoryBreakdown(): Promise<ReportTable> {
   return {
     id: "category",
     title: "Category breakdown",
-    subtitle: "Stock and potential margin by main category",
+    subtitle: "Stock and potential margin by category and sub-category",
     columns: [
       { label: "Category", kind: "text", emphasis: true },
       { label: "Products", kind: "number" },

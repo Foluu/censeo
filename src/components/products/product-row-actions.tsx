@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { toggleProductActive, toggleProductFeatured } from "@/lib/actions/products";
 import type { CategoryGroupData, ProductLevel } from "@/lib/queries";
+import type { CategoryNode } from "@/lib/category-tree";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +32,7 @@ export function toEditable(product: ProductLevel): EditableProduct {
     sku: product.sku,
     name: product.name,
     description: product.description,
-    category: product.category,
+    categoryId: product.categoryId,
     unitPrice: product.unitPrice,
     costPrice: product.costPrice,
     reorderLevel: product.reorderLevel,
@@ -46,13 +47,13 @@ export function toEditable(product: ProductLevel): EditableProduct {
 export function ProductRowActions({
   product,
   groups,
-  mainCategories,
+  categories,
   showDetailsLink = true,
   className,
 }: {
   product: ProductLevel;
   groups: CategoryGroupData[];
-  mainCategories: string[];
+  categories: CategoryNode[];
   showDetailsLink?: boolean;
   className?: string;
 }) {
@@ -137,7 +138,7 @@ export function ProductRowActions({
         <ProductDialog
           product={toEditable(product)}
           groups={groups}
-          mainCategories={mainCategories}
+          categories={categories}
           open={editOpen}
           onOpenChange={setEditOpen}
           trigger={null}

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { createCategoryOption } from "@/lib/actions/categories";
 import type { CategoryGroupData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { appliesToCategory, type CategoryNode } from "@/lib/category-tree";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -15,24 +16,26 @@ type PickerGroup = Pick<
   "id" | "name" | "multiSelect" | "isRequired" | "appliesTo"
 > & { options: { id: string; name: string; color: string | null }[] };
 
-export function groupAppliesTo(group: { appliesTo: string[] }, mainCategory: string) {
-  return (
-    group.appliesTo.length === 0 ||
-    group.appliesTo.some((c) => c.toLowerCase() === mainCategory.trim().toLowerCase())
-  );
+export function groupAppliesTo(
+  group: { appliesTo: string[] },
+  tree: CategoryNode[],
+  categoryId: string | null
+) {
+  return appliesToCategory(group.appliesTo, tree, categoryId);
 }
 
 /** Returns the name of the first required group left empty, if any. */
 export function missingRequiredGroup(
   groups: PickerGroup[],
-  mainCategory: string,
+  tree: CategoryNode[],
+  categoryId: string | null,
   selected: string[]
 ) {
   const chosen = new Set(selected);
   return groups.find(
     (g) =>
       g.isRequired &&
-      groupAppliesTo(g, mainCategory) &&
+      groupAppliesTo(g, tree, categoryId) &&
       !g.options.some((o) => chosen.has(o.id))
   )?.name;
 }
@@ -97,18 +100,20 @@ type NewOption = { id: string; name: string; color: string | null };
 
 export function CategoryPicker({
   groups,
-  mainCategory,
+  tree,
+  categoryId,
   value,
   onChange,
   onOptionAdded,
 }: {
   groups: PickerGroup[];
-  mainCategory: string;
+  tree: CategoryNode[];
+  categoryId: string | null;
   value: string[];
   onChange: (optionIds: string[]) => void;
   onOptionAdded: (groupId: string, option: NewOption) => void;
 }) {
-  const applicable = groups.filter((g) => groupAppliesTo(g, mainCategory));
+  const applicable = groups.filter((g) => groupAppliesTo(g, tree, categoryId));
   const selected = new Set(value);
 
   function toggle(group: PickerGroup, optionId: string) {
@@ -126,10 +131,10 @@ export function CategoryPicker({
     <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-4">
       <div className="flex items-center justify-between">
         <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-          Categories
+          Attributes
         </Label>
         <Link
-          href="/products/categories"
+          href="/products/categories?tab=attributes"
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
           <Settings2 className="size-3.5" /> Manage
@@ -138,15 +143,15 @@ export function CategoryPicker({
 
       {groups.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Group products by colour, size, storage or anything else.{" "}
-          <Link href="/products/categories" className="font-medium text-primary hover:underline">
-            Create your first category
+          Describe products by colour, size, storage or anything else.{" "}
+          <Link href="/products/categories?tab=attributes" className="font-medium text-primary hover:underline">
+            Create your first attribute
           </Link>
           .
         </p>
       ) : applicable.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No categories apply to “{mainCategory || "this main category"}”.
+          No attributes apply to this category.
         </p>
       ) : (
         applicable.map((group) => (

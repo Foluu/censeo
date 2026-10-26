@@ -162,7 +162,8 @@ export function FilterBar({
         const option = field.options.find((o) => o.value === value);
         out.push({
           id: field.key,
-          label: `${field.label}: ${option?.label ?? value}`,
+          // Drop tree indentation / counts used inside the dropdown.
+          label: `${field.label}: ${(option?.label ?? value).replace(/^[\s └]+/, "").replace(/ \(\d+\)$/, "")}`,
           key: field.key,
         });
       } else {

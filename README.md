@@ -21,7 +21,7 @@ npm run db:dev
 # Terminal 2 — first run only
 cp .env.example .env        # then set DATABASE_URL to the URL printed by db:dev (+ pgbouncer=true) and a fresh AUTH_SECRET
 npx prisma db push
-npm run db:seed
+npm run db:seed             # demo data; on an existing database run `npm run db:backfill` after pulling schema changes
 
 npm run dev                 # http://localhost:3000
 ```
@@ -40,7 +40,8 @@ Demo logins (seeded):
 - **Receipts** — printable/shareable customer receipt for every sale (`/sales/[id]`), headed with the business details set in Settings
 - **Inventory** — live stock levels per warehouse + goods-received history
 - **Products** — item master (SKU, pricing, reorder levels, tracking flags), archive/restore; at-a-glance summary, table or catalogue grid, filters, group-by, and a detail page per product. Star products as "major" to pin them under Products in the sidebar
-- **Categories** (`/products/categories`) — user-defined groups (Colour, Storage, Size…) with options and per-group rules: one vs. several options, required, filterable, and which main categories they apply to
+- **Categories** (`/products/categories`) — a category tree up to 4 levels deep (e.g. Phones › Apple › iPhone): add several at once, add sub-categories in place, rename, move, reorder, search; deleting a category moves its products and sub-categories up to the parent. Filtering by a category includes everything beneath it.
+- **Attributes** (`/products/categories?tab=attributes`) — user-defined attributes (Colour, Storage, Grade…) with options and rules: one vs. several options, required, filterable, and which categories they apply to (each category includes its sub-categories)
 - **Customers** — directory with lifetime value
 - **Transfers** — request → approve/cancel between warehouses, ledger-backed
 - **Reports** — inventory summary, category breakdown, monthly sales (admin only); export any report as CSV (raw numbers, Excel-friendly) or PDF via `/api/reports/export?type=…&format=csv|pdf`

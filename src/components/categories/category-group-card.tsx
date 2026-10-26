@@ -20,6 +20,7 @@ import {
   updateCategoryOption,
 } from "@/lib/actions/categories";
 import type { CategoryGroupData } from "@/lib/queries";
+import type { CategoryNode } from "@/lib/category-tree";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,12 +152,12 @@ function AddOptionForm({ groupId }: { groupId: string }) {
 
 export function CategoryGroupCard({
   group,
-  mainCategories,
+  categories,
   isFirst,
   isLast,
 }: {
   group: CategoryGroupData;
-  mainCategories: string[];
+  categories: CategoryNode[];
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -198,7 +199,12 @@ export function CategoryGroupCard({
               <Badge variant="secondary" className="whitespace-normal text-left">
                 {group.appliesTo.length === 0
                   ? "Applies to all products"
-                  : `Applies to: ${group.appliesTo.join(", ")}`}
+                  : `Applies to: ${
+                      group.appliesTo
+                        .map((id) => categories.find((c) => c.id === id)?.path)
+                        .filter(Boolean)
+                        .join(", ") || "removed categories"
+                    }`}
               </Badge>
               <Badge variant="outline">
                 {group.options.length} options · {usedBy} tags
@@ -228,7 +234,7 @@ export function CategoryGroupCard({
             </Button>
             <DropdownMenu onOpenChange={(o) => !o && setConfirmDelete(false)}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8" aria-label="Category actions">
+                <Button variant="ghost" size="icon" className="size-8" aria-label="Attribute actions">
                   <MoreHorizontal className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -249,7 +255,7 @@ export function CategoryGroupCard({
                   }}
                 >
                   <Trash2 className="size-4" />
-                  {confirmDelete ? `Tap again to delete (${usedBy} tags)` : "Delete category"}
+                  {confirmDelete ? `Tap again to delete (${usedBy} tags)` : "Delete attribute"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -296,7 +302,7 @@ export function CategoryGroupCard({
       {editOpen && (
         <CategoryGroupDialog
           group={group}
-          mainCategories={mainCategories}
+          categories={categories}
           open={editOpen}
           onOpenChange={setEditOpen}
           trigger={null}
